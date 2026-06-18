@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex h-full">
+    <!-- Posts Feed -->
+    <div class="w-2/3 p-4">
+        <h1 class="text-2xl font-bold mb-4">{{ session.title }}</h1>
+        <div id="posts-container">
+            {% for post in posts %}
+            <div class="mb-4 p-4 bg-gray-800 rounded-lg">
+                <div class="flex items-center mb-2">
+                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}https://via.placeholder.com/40{% endif %}" alt="Avatar" class="w-8 h-8 rounded-full mr-2">
+                    <span class="font-bold">{{ post.author.username }}</span>
+                    <span class="text-gray-400 text-sm ml-2">{{ post.created_at|date:"h:i A" }}</span>
+                </div>
+                <p>{{ post.content }}</p>
+                <div class="mt-2">
+                    {% for comment in post.comments.all %}
+                    <div class="flex items-center mt-2">
+                        <img src="{% if comment.author.profile.avatar %}{{ comment.author.profile.avatar.url }}{% else %}https://via.placeholder.com/30{% endif %}" alt="Avatar" class="w-6 h-6 rounded-full mr-2">
+                        <span class="font-bold text-sm">{{ comment.author.username }}:</span>
+                        <span class="text-sm ml-1">{{ comment.content }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if can_post %}
+        <form id="new-post-form" class="mt-4">
+            {% csrf_token %}
+            <textarea name="content" class="w-full bg-gray-800 rounded-md p-2" placeholder="Add a post..."></textarea>
+            <button type="submit" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded">Post</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="w-1/3 p-4 bg-gray-800">
+        <h2 class="text-xl font-bold mb-4">Session Info</h2>
+        <div id="timer" data-endtime="{{ session.end_time.isoformat }}" class="text-4xl font-bold text-center mb-4"></div>
+        <p>{{ session.description }}</p>
+        <button id="focus-mode-btn" class="mt-4 bg-purple-500 text-white px-4 py-2 rounded w-full">Focus Mode</button>
+    </div>
+</div>
+
+<div id="focus-overlay" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 items-center justify-center">
+    <div id="focus-timer" class="text-8xl font-bold text-white"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const timerEl = document.getElementById('timer');
+        const focusTimerEl = document.getElementById('focus-timer');
+        const endTime = new Date(timerEl.dataset.endtime).getTime();
+
+        function updateTimer() {
+            const now = new Date().getTime();
+            const distance = endTime - now;
+
+            if (distance < 0) {
+                clearInterval(timerInterval);
+                timerEl.innerHTML = "EXPIRED";
+                focusTimerEl.innerHTML = "EXPIRED";
+                // Disable inputs and close session
+                document.getElementById('new-post-form').style.display = 'none';
+                fetch("{% url 'studySessions:close_session' session.id %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                return;
+            }
+
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const timerString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            timerEl.innerHTML = timerString;
+            focusTimerEl.innerHTML = timerString;
+        }
+
+        const timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+
+        const newPostForm = document.getElementById('new-post-form');
+        if (newPostForm) {
+            newPostForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const content = newPostForm.querySelector('textarea').value;
+                fetch("{% url 'studySessions:session_detail' session.id %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: `content=${encodeURIComponent(content)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        const postsContainer = document.getElementById('posts-container');
+                        const newPost = document.createElement('div');
+                        newPost.className = 'mb-4 p-4 bg-gray-800 rounded-lg';
+                        newPost.innerHTML = `
+                            <div class="flex items-center mb-2">
+                                <img src="https://via.placeholder.com/40" alt="Avatar" class="w-8 h-8 rounded-full mr-2">
+                                <span class="font-bold">{{ request.user.username }}</span>
+                                <span class="text-gray-400 text-sm ml-2">Now</span>
+                            </div>
+                            <p>${content}</p>
+                        `;
+                        postsContainer.appendChild(newPost);
+                        newPostForm.querySelector('textarea').value = '';
+                    }
+                });
+            });
+        }
+
+        const focusBtn = document.getElementById('focus-mode-btn');
+        const focusOverlay = document.getElementById('focus-overlay');
+        focusBtn.addEventListener('click', () => {
+            focusOverlay.classList.toggle('hidden');
+            focusOverlay.classList.toggle('flex');
+        });
+        focusOverlay.addEventListener('click', () => {
+            focusOverlay.classList.add('hidden');
+            focusOverlay.classList.remove('flex');
+        });
+    });
+</script>
+{% endblock %}

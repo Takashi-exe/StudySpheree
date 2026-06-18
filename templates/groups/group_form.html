@@ -1,11 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
-    <h2>{% if object %}Edit Group{% else %}Create Group{% endif %}</h2>
-    <form method="post" enctype="multipart/form-data">
+<div class="container mx-auto p-4">
+    <h2 class="text-2xl font-bold mb-4">{% if object %}Edit Group{% else %}Create Group{% endif %}</h2>
+    <form method="post" enctype="multipart/form-data" class="bg-gray-800 rounded-lg shadow p-4">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">{% if object %}Save Changes{% else %}Create Group{% endif %}</button>
+        <div class="mb-4">
+            <label for="id_name" class="block text-gray-400 mb-2">Name</label>
+            <input type="text" name="name" id="id_name" class="w-full bg-gray-700 rounded-md p-2" required>
+        </div>
+        <div class="mb-4">
+            <label for="id_description" class="block text-gray-400 mb-2">Description</label>
+            <textarea name="description" id="id_description" class="w-full bg-gray-700 rounded-md p-2"></textarea>
+        </div>
+        <div class="mb-4">
+            <label for="id_cover_image" class="block text-gray-400 mb-2">Cover Image</label>
+            <input type="file" name="cover_image" id="id_cover_image" class="w-full bg-gray-700 rounded-md p-2">
+        </div>
+        <div class="mb-4">
+            <input type="checkbox" name="is_private" id="id_is_private" class="mr-2">
+            <label for="id_is_private" class="text-gray-400">Private</label>
+        </div>
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">{% if object %}Save Changes{% else %}Create Group{% endif %}</button>
     </form>
 </div>
 {% endblock %}
