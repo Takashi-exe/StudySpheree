@@ -1,129 +1,188 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="flex h-screen">
-    <!-- Main Chat Area -->
-    <div class="flex-1 flex flex-col">
-        <!-- Header -->
-        <div class="bg-gray-800 p-4 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-white">{{ session.title }}</h2>
-            <div id="timer" class="text-2xl font-bold text-white" data-remaining-seconds="{{ remaining_seconds }}"></div>
-        </div>
+{% extends "base.html" %}
+{% load static %}
 
-        <!-- Messages -->
-        <div id="posts" class="flex-1 p-4 overflow-y-auto bg-gray-700">
-            {% for post in posts %}
-            <div class="flex items-start mb-4">
-                <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}https://via.placeholder.com/40{% endif %}" alt="Avatar" class="w-10 h-10 rounded-full mr-3">
-                <div class="flex-1">
-                    <div class="flex items-baseline">
-                        <span class="font-bold text-white mr-2">{{ post.author.username }}</span>
-                        <span class="text-xs text-gray-400">{{ post.created_at|date:"h:i A" }}</span>
-                    </div>
-                    <p class="text-white">{{ post.content }}</p>
-                    {% for comment in post.comments.all %}
-                    <div class="flex items-start mt-2 ml-8">
-                        <img src="{% if comment.author.profile.avatar %}{{ comment.author.profile.avatar.url }}{% else %}https://via.placeholder.com/30{% endif %}" alt="Avatar" class="w-8 h-8 rounded-full mr-3">
-                        <div class="flex-1">
-                            <div class="flex items-baseline">
-                                <span class="font-bold text-white mr-2">{{ comment.author.username }}</span>
-                                <span class="text-xs text-gray-400">{{ comment.created_at|date:"h:i A" }}</span>
+{% block title %}Study Session: {{ session.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 70px - var(--spacing-8) * 2);
+    }
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: var(--spacing-4);
+    }
+    .timer-ring {
+        width: 150px;
+        height: 150px;
+        position: relative;
+    }
+    .timer-ring__svg {
+        transform: rotate(-90deg);
+    }
+    .timer-ring__circle {
+        transition: stroke-dashoffset 0.3s;
+        stroke: var(--accent);
+        stroke-width: 8;
+        fill: transparent;
+    }
+    .timer-ring__background {
+        stroke: var(--bg-tertiary);
+        stroke-width: 8;
+        fill: transparent;
+    }
+    .timer-ring__text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.75rem;
+        font-weight: 700;
+        font-family: var(--font-display);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-0">
+    <!-- Main Chat Area -->
+    <div class="col-md-8">
+        <div class="card rounded-0 rounded-start border-0 h-100">
+            <div class="chat-container">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Session Chat</h2>
+                </div>
+                <div class="chat-messages" id="posts">
+                    {% for post in posts %}
+                    <div class="d-flex align-items-start mb-4">
+                        <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ post.author.username }}&background=random{% endif %}" alt="Avatar" class="rounded-circle me-3" width="40" height="40">
+                        <div>
+                            <div class="d-flex align-items-baseline">
+                                <strong class="me-2">{{ post.author.username }}</strong>
+                                <small class="text-secondary">{{ post.created_at|date:"h:i A" }}</small>
                             </div>
-                            <p class="text-white">{{ comment.content }}</p>
+                            <p class="mb-0">{{ post.content }}</p>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
+                {% if can_post %}
+                <div class="card-footer">
+                    <form method="post" id="post-form" class="d-flex">
+                        {% csrf_token %}
+                        <input type="text" name="content" class="form-control" placeholder="Type a message...">
+                        <button type="submit" class="btn btn-primary ms-2"><i data-lucide="send"></i></button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
         </div>
-
-        <!-- Input -->
-        {% if can_post %}
-        <div class="bg-gray-800 p-4">
-            <form method="post" id="post-form" class="flex items-center">
-                {% csrf_token %}
-                <input type="text" name="content" class="flex-1 bg-gray-600 rounded-full py-2 px-4 text-white" placeholder="Type a message...">
-                <button type="submit" class="ml-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full">Send</button>
-            </form>
-        </div>
-        {% endif %}
     </div>
 
     <!-- Sidebar -->
-    <div class="w-1/4 bg-gray-900 p-4">
-        <h3 class="text-lg font-bold text-white mb-4">Session Details</h3>
-        <p class="text-gray-400 mb-4">{{ session.description }}</p>
-        <button id="focus-mode" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-md mb-4">Focus Mode</button>
-        {% if session.created_by == request.user %}
-        <form method="post" action="{% url 'studySessions:close_session' session.id %}">
-            {% csrf_token %}
-            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md">End Session</button>
-        </form>
-        {% endif %}
+    <div class="col-md-4">
+        <div class="card rounded-0 rounded-end border-0 border-start" style="height: calc(100vh - 70px - var(--spacing-8) * 2); overflow-y: auto;">
+            <div class="card-body text-center">
+                <h3 class="h5 mb-3">{{ session.title }}</h3>
+                <p class="text-secondary mb-4">{{ session.description }}</p>
+
+                <div class="timer-ring mx-auto my-4">
+                    <svg class="timer-ring__svg" viewBox="0 0 100 100">
+                        <circle class="timer-ring__background" cx="50" cy="50" r="45"></circle>
+                        <circle class="timer-ring__circle" id="timer-progress" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div id="timer" class="timer-ring__text" data-total-seconds="{{ session.duration_minutes|multiply:60 }}" data-remaining-seconds="{{ remaining_seconds }}"></div>
+                </div>
+
+                {% if session.created_by == request.user %}
+                <form method="post" action="{% url 'studySessions:close_session' session.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger w-100">End Session</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
-    const timer = document.getElementById('timer');
-    let remainingSeconds = parseInt(timer.dataset.remainingSeconds);
-    const interval = setInterval(() => {
-        if (remainingSeconds <= 0) {
-            clearInterval(interval);
-            fetch("{% url 'studySessions:close_session' session.id %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok' && data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                }
-            });
-            return;
-        }
-        remainingSeconds--;
+    const timerEl = document.getElementById('timer');
+    const progressCircle = document.getElementById('timer-progress');
+    const totalSeconds = parseInt(timerEl.dataset.totalSeconds);
+    let remainingSeconds = parseInt(timerEl.dataset.remainingSeconds);
+    const radius = progressCircle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+
+    progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+
+    function setProgress(percent) {
+        const offset = circumference - percent / 100 * circumference;
+        progressCircle.style.strokeDashoffset = offset;
+    }
+
+    function updateTimer() {
         const hours = Math.floor(remainingSeconds / 3600);
         const minutes = Math.floor((remainingSeconds % 3600) / 60);
         const seconds = remainingSeconds % 60;
-        timer.innerText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        timerEl.innerText = `${hours > 0 ? hours.toString().padStart(2, '0') + ':' : ''}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        const percent = ((totalSeconds - remainingSeconds) / totalSeconds) * 100;
+        setProgress(percent);
+    }
+
+    const interval = setInterval(() => {
+        if (remainingSeconds <= 0) {
+            clearInterval(interval);
+            // Auto-end session logic
+            return;
+        }
+        remainingSeconds--;
+        updateTimer();
     }, 1000);
 
-    document.getElementById('focus-mode').addEventListener('click', () => {
-        enterFocusMode(remainingSeconds, '{{ session.title }}');
-    });
+    updateTimer(); // Initial call
 
-    document.getElementById('post-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        }).then(response => response.json()).then(data => {
-            if (data.status === 'ok') {
-                const posts = document.getElementById('posts');
-                const newPost = document.createElement('div');
-                newPost.className = 'flex items-start mb-4';
-                newPost.innerHTML = `
-                    <img src="https://via.placeholder.com/40" alt="Avatar" class="w-10 h-10 rounded-full mr-3">
-                    <div class="flex-1">
-                        <div class="flex items-baseline">
-                            <span class="font-bold text-white mr-2">{{ request.user.username }}</span>
-                            <span class="text-xs text-gray-400">Now</span>
+    // Chat form submission
+    const postForm = document.getElementById('post-form');
+    if(postForm) {
+        postForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const content = formData.get('content');
+            if (content.trim() === '') return;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'ok') {
+                    const posts = document.getElementById('posts');
+                    const newPost = document.createElement('div');
+                    newPost.className = 'd-flex align-items-start mb-4';
+                    newPost.innerHTML = `
+                        <img src="${data.avatar_url || 'https://ui-avatars.com/api/?name={{ request.user.username }}&background=random'}" alt="Avatar" class="rounded-circle me-3" width="40" height="40">
+                        <div>
+                            <div class="d-flex align-items-baseline">
+                                <strong class="me-2">{{ request.user.username }}</strong>
+                                <small class="text-secondary">Now</small>
+                            </div>
+                            <p class="mb-0">${content}</p>
                         </div>
-                        <p class="text-white">${formData.get('content')}</p>
-                    </div>
-                `;
-                posts.appendChild(newPost);
-                form.reset();
-            }
+                    `;
+                    posts.appendChild(newPost);
+                    posts.scrollTop = posts.scrollHeight;
+                    form.reset();
+                }
+            });
         });
-    });
+    }
+    lucide.createIcons();
 </script>
 {% endblock %}

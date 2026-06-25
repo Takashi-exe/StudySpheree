@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import StudyGroup, GroupMembership, GroupChatMessage
+from .forms import GroupForm
 from studySessions.models import StudySession
 
 @login_required
@@ -12,21 +13,17 @@ def group_list(request):
 @login_required
 def create_group(request):
     if request.method == 'POST':
-        name = request.POST.get('name')
-        description = request.POST.get('description', '')
-        is_private = request.POST.get('is_private') == 'on'
-        
-        group = StudyGroup.objects.create(
-            name=name,
-            description=description,
-            is_private=is_private,
-            created_by=request.user
-        )
-        GroupMembership.objects.create(user=request.user, group=group, role='admin')
-        messages.success(request, f"Group '{name}' created successfully.")
-        return redirect('groups:group_detail', group_id=group.id)
-        
-    return render(request, 'groups/group_form.html')
+        form = GroupForm(request.POST, request.FILES)
+        if form.is_valid():
+            group = form.save(commit=False)
+            group.created_by = request.user
+            group.save()
+            GroupMembership.objects.create(user=request.user, group=group, role='admin')
+            messages.success(request, f"Group '{group.name}' created successfully.")
+            return redirect('groups:group_detail', group_id=group.id)
+    else:
+        form = GroupForm()
+    return render(request, 'groups/group_form.html', {'form': form})
 
 @login_required
 def group_detail(request, group_id):

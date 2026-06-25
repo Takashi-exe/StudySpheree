@@ -1,23 +1,56 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+
 {% block title %}Friend Requests{% endblock %}
+
 {% block content %}
-    <h1 class="text-2xl font-bold mb-4">Incoming Friend Requests</h1>
-    {% if friend_requests %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for request in friend_requests %}
-                <div class="bg-gray-800 rounded-lg p-4 flex items-center justify-between">
-                    <a href="{% url 'view_profile' username=request.sender.username %}" class="flex items-center">
-                        <img src="{% if request.sender.profile.avatar %}{{ request.sender.profile.avatar.url }}{% else %}/static/default_avatar.png{% endif %}" alt="Avatar" class="w-12 h-12 rounded-full mr-4">
-                        <span>{{ request.sender.username }}</span>
-                    </a>
-                    <div>
-                        <a href="{% url 'accept_friend_request' from_user_username=request.sender.username %}" class="bg-green-500 text-white px-3 py-1 rounded mr-2">Accept</a>
-                        <a href="{% url 'reject_friend_request' from_user_username=request.sender.username %}" class="bg-red-500 text-white px-3 py-1 rounded">Decline</a>
-                    </div>
-                </div>
-            {% endfor %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="h2">Friend Requests</h1>
+            <p class="text-secondary">Manage incoming friend requests.</p>
         </div>
-    {% else %}
-        <p>You have no pending friend requests.</p>
-    {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if friend_requests %}
+                <ul class="list-group list-group-flush">
+                    {% for request in friend_requests %}
+                        <li class="list-group-item d-flex align-items-center px-0 py-3">
+                            <a href="{% url 'view_profile' username=request.sender.username %}" class="text-decoration-none d-flex align-items-center flex-grow-1">
+                                <img src="{% if request.sender.profile.avatar %}{{ request.sender.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ request.sender.username }}&background=random{% endif %}"
+                                     alt="{{ request.sender.username }}"
+                                     class="rounded-circle me-3"
+                                     width="48"
+                                     height="48">
+                                <div>
+                                    <h5 class="mb-0 text-primary">{{ request.sender.username }}</h5>
+                                    <small class="text-secondary">Sent you a friend request.</small>
+                                </div>
+                            </a>
+                            <div class="ms-auto">
+                                <a href="{% url 'accept_friend_request' from_user_username=request.sender.username %}" class="btn btn-success btn-sm me-2">Accept</a>
+                                <a href="{% url 'reject_friend_request' from_user_username=request.sender.username %}" class="btn btn-danger btn-sm">Decline</a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-center py-5">
+                    <i data-lucide="user-plus" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+                    <h5 class="card-title">No pending requests</h5>
+                    <p class="text-secondary">You have no new friend requests.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    lucide.createIcons();
+</script>
 {% endblock %}

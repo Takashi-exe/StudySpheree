@@ -1,0 +1,6 @@
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def flashcard_view(request):
+    return render(request, 'flashcards/flashcards.html')

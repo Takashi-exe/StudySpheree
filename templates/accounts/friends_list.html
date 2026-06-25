@@ -1,20 +1,61 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+
 {% block title %}Your Friends{% endblock %}
+
 {% block content %}
-    <h1 class="text-2xl font-bold mb-4">Your Friends</h1>
-    {% if friends %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for friend in friends %}
-                <div class="bg-gray-800 rounded-lg p-4 flex items-center justify-between">
-                    <a href="{% url 'view_profile' username=friend.username %}" class="flex items-center">
-                        <img src="{% if friend.profile.avatar %}{{ friend.profile.avatar.url }}{% else %}/static/default_avatar.png{% endif %}" alt="Avatar" class="w-12 h-12 rounded-full mr-4">
-                        <span>{{ friend.username }}</span>
-                    </a>
-                    <a href="{% url 'start_conversation' username=friend.username %}" class="bg-green-500 text-white px-3 py-1 rounded">Message</a>
-                </div>
-            {% endfor %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="h2">Your Friends</h1>
+            <p class="text-secondary">Manage your connections and start conversations.</p>
         </div>
-    {% else %}
-        <p>You don't have any friends yet.</p>
-    {% endif %}
+        <div>
+            <a href="{% url 'user_search' %}" class="btn btn-primary d-flex align-items-center">
+                <i data-lucide="search" class="me-2"></i>Find Friends
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if friends %}
+                <ul class="list-group list-group-flush">
+                    {% for friend in friends %}
+                        <li class="list-group-item d-flex align-items-center px-0 py-3">
+                            <a href="{% url 'view_profile' username=friend.username %}" class="text-decoration-none d-flex align-items-center flex-grow-1">
+                                <img src="{% if friend.profile.avatar %}{{ friend.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ friend.username }}&background=random{% endif %}"
+                                     alt="{{ friend.username }}"
+                                     class="rounded-circle me-3"
+                                     width="48"
+                                     height="48">
+                                <div>
+                                    <h5 class="mb-0 text-primary">{{ friend.username }}</h5>
+                                    <small class="text-secondary">{{ friend.first_name }} {{ friend.last_name }}</small>
+                                </div>
+                            </a>
+                            <a href="{% url 'start_conversation' username=friend.username %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">
+                                <i data-lucide="message-square" class="me-2" style="width: 16px; height: 16px;"></i> Message
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-center py-5">
+                    <i data-lucide="users" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+                    <h5 class="card-title">No friends yet</h5>
+                    <p class="text-secondary">You haven't added any friends to your network.</p>
+                    <a href="{% url 'user_search' %}" class="btn btn-primary mt-3">Find Friends</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    lucide.createIcons();
+</script>
 {% endblock %}

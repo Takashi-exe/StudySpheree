@@ -1,33 +1,112 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+
 {% block title %}User Search{% endblock %}
+
 {% block content %}
-    <h1 class="text-2xl font-bold mb-4">Search for Users</h1>
-    <input type="text" id="search-input" placeholder="Start typing to search..." class="w-full bg-gray-700 text-white rounded-md px-3 py-2">
-    <div id="search-results" class="mt-4"></div>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="h2">Find New People</h1>
+                <p class="text-secondary">Search for other users on StudySphere to connect with.</p>
+            </div>
 
-    <script>
-        const searchInput = document.getElementById('search-input');
-        const searchResults = document.getElementById('search-results');
+            <!-- Search Input -->
+            <div class="mb-4">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text" id="search-addon"><i data-lucide="search"></i></span>
+                    <input type="text" id="search-input" class="form-control" placeholder="Start typing to search for users..." aria-label="Search users" aria-describedby="search-addon">
+                </div>
+            </div>
 
-        searchInput.addEventListener('keyup', () => {
-            const query = searchInput.value;
-            if (query.length > 0) {
-                fetch(`/api/user_search/?q=${query}`)
+            <!-- Search Results -->
+            <div class="card">
+                <div class="card-body" id="search-results-container" style="min-height: 300px;">
+                    <!-- Initial state -->
+                    <div class="text-center py-5" id="initial-state">
+                        <i data-lucide="search" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+                        <h5 class="card-title">Search for Users</h5>
+                        <p class="text-secondary">Results will be displayed here.</p>
+                    </div>
+                    <!-- No results state (hidden by default) -->
+                    <div class="text-center py-5 d-none" id="no-results-state">
+                        <i data-lucide="frown" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+                        <h5 class="card-title">No Users Found</h5>
+                        <p class="text-secondary">Try a different search query.</p>
+                    </div>
+                    <!-- Results list -->
+                    <ul class="list-group list-group-flush d-none" id="results-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const searchInput = document.getElementById('search-input');
+    const resultsContainer = document.getElementById('search-results-container');
+    const initialState = document.getElementById('initial-state');
+    const noResultsState = document.getElementById('no-results-state');
+    const resultsList = document.getElementById('results-list');
+
+    let searchTimeout;
+
+    searchInput.addEventListener('keyup', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const query = searchInput.value.trim();
+            if (query.length > 1) {
+                fetch(`/api/user_search/?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(data => {
-                        let resultsHtml = '';
+                        initialState.classList.add('d-none');
+                        resultsList.innerHTML = '';
+
                         if (data.users.length > 0) {
+                            noResultsState.classList.add('d-none');
+                            resultsList.classList.remove('d-none');
+
                             data.users.forEach(user => {
-                                resultsHtml += `<div class="p-2 hover:bg-gray-700"><a href="/profile/${user.username}/">${user.username}</a></div>`;
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item d-flex align-items-center';
+
+                                const avatarUrl = `https://ui-avatars.com/api/?name=${user.username}&background=random`;
+
+                                li.innerHTML = `
+                                    <a href="/profile/${user.username}/" class="text-decoration-none d-flex align-items-center flex-grow-1">
+                                        <img src="${avatarUrl}" alt="${user.username}" class="rounded-circle me-3" width="40" height="40">
+                                        <div>
+                                            <h6 class="mb-0 text-primary">${user.username}</h6>
+                                            <small class="text-secondary">${user.first_name || ''} ${user.last_name || ''}</small>
+                                        </div>
+                                    </a>
+                                    <a href="/profile/${user.username}/" class="btn btn-sm btn-outline-secondary">View Profile</a>
+                                `;
+                                resultsList.appendChild(li);
                             });
                         } else {
-                            resultsHtml = '<p>No users found.</p>';
+                            resultsList.classList.add('d-none');
+                            noResultsState.classList.remove('d-none');
                         }
-                        searchResults.innerHTML = resultsHtml;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching search results:', error);
+                        resultsList.classList.add('d-none');
+                        noResultsState.classList.remove('d-none');
                     });
             } else {
-                searchResults.innerHTML = '';
+                resultsList.innerHTML = '';
+                resultsList.classList.add('d-none');
+                noResultsState.classList.add('d-none');
+                initialState.classList.remove('d-none');
             }
-        });
-    </script>
+        }, 300); // Debounce API calls
+    });
+
+    lucide.createIcons();
+</script>
 {% endblock %}

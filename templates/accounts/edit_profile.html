@@ -1,45 +1,86 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+
 {% block title %}Edit Profile{% endblock %}
+
 {% block content %}
-<div class="min-h-screen flex items-center justify-center">
-    <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-lg">
-        <h2 class="text-2xl font-bold text-white text-center mb-8">Edit Your Profile</h2>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="id_first_name" class="block text-gray-400 mb-2">First Name</label>
-                    <input type="text" name="first_name" id="id_first_name" value="{{ user_form.first_name.value|default:'' }}" class="w-full bg-gray-700 rounded-md p-2 text-white">
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="h2">Edit Your Profile</h1>
+                <p class="text-secondary">Keep your profile information up to date.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-5">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}&background=random&size=128{% endif %}"
+                                     alt="Avatar"
+                                     class="rounded-circle mb-3 img-fluid"
+                                     id="avatar-preview">
+                                <label for="id_avatar" class="btn btn-sm btn-secondary">Change Avatar</label>
+                                {{ profile_form.avatar }}
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ user_form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                        {{ user_form.first_name }}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ user_form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                        {{ user_form.last_name }}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ user_form.email.id_for_label }}" class="form-label">Email</label>
+                                    {{ user_form.email }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ profile_form.bio.id_for_label }}" class="form-label">Bio</label>
+                                    {{ profile_form.bio }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5 class="mb-3">Social Links</h5>
+                        <div class="mb-3">
+                            <label for="{{ profile_form.github_url.id_for_label }}" class="form-label">GitHub URL</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i data-lucide="github"></i></span>
+                                {{ profile_form.github_url }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                        </div>
+                    </form>
                 </div>
-                <div>
-                    <label for="id_last_name" class="block text-gray-400 mb-2">Last Name</label>
-                    <input type="text" name="last_name" id="id_last_name" value="{{ user_form.last_name.value|default:'' }}" class="w-full bg-gray-700 rounded-md p-2 text-white">
-                </div>
             </div>
-            <div class="mt-6">
-                <label for="id_email" class="block text-gray-400 mb-2">Email</label>
-                <input type="email" name="email" id="id_email" value="{{ user_form.email.value|default:'' }}" class="w-full bg-gray-700 rounded-md p-2 text-white">
-            </div>
-            <div class="mt-6">
-                <label for="id_bio" class="block text-gray-400 mb-2">Bio</label>
-                <textarea name="bio" id="id_bio" class="w-full bg-gray-700 rounded-md p-2 text-white">{{ profile_form.bio.value|default:'' }}</textarea>
-            </div>
-            <div class="mt-6">
-                <label for="id_location" class="block text-gray-400 mb-2">Location</label>
-                <input type="text" name="location" id="id_location" value="{{ profile_form.location.value|default:'' }}" class="w-full bg-gray-700 rounded-md p-2 text-white">
-            </div>
-            <div class="mt-6">
-                <label for="id_github_url" class="block text-gray-400 mb-2">GitHub URL</label>
-                <input type="url" name="github_url" id="id_github_url" value="{{ profile_form.github_url.value|default:'' }}" class="w-full bg-gray-700 rounded-md p-2 text-white">
-            </div>
-            <div class="mt-6">
-                <label for="id_avatar" class="block text-gray-400 mb-2">Avatar</label>
-                <input type="file" name="avatar" id="id_avatar" class="w-full bg-gray-700 rounded-md p-2 text-white">
-            </div>
-            <div class="mt-8">
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Save Changes</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.getElementById('{{ profile_form.avatar.id_for_label }}').style.display = 'none';
+    document.getElementById('{{ profile_form.avatar.id_for_label }}').addEventListener('change', function(event) {
+        const preview = document.getElementById('avatar-preview');
+        const file = event.target.files[0];
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+        }
+    });
+    lucide.createIcons();
+</script>
 {% endblock %}

@@ -1,33 +1,102 @@
-{% extends 'base.html' %}
-{% block title %}Profile{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ profile_user.username }}'s Profile{% endblock %}
+
 {% block content %}
-    <div class="max-w-4xl mx-auto">
-        <div class="flex items-center">
-            <img src="{% if profile_user.profile.avatar %}{{ profile_user.profile.avatar.url }}{% else %}/static/default_avatar.png{% endif %}" alt="Avatar" class="w-24 h-24 rounded-full mr-4">
-            <div>
-                <h2 class="text-2xl font-bold">{{ profile_user.username }}</h2>
-                <p class="text-gray-400">{{ profile_user.first_name }} {{ profile_user.last_name }}</p>
-                <p>{{ profile_user.profile.bio }}</p>
-                <p><a href="{{ profile_user.profile.github_url }}" class="text-blue-500">{{ profile_user.profile.github_url }}</a></p>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left Sidebar - Profile Card -->
+        <div class="col-lg-4">
+            <div class="card position-sticky" style="top: var(--spacing-8);">
+                <div class="card-body text-center">
+                    <img src="{% if profile_user.profile.avatar %}{{ profile_user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ profile_user.username }}&background=random&size=128{% endif %}"
+                         alt="Avatar"
+                         class="rounded-circle mb-3"
+                         width="128"
+                         height="128">
+
+                    <h2 class="h4">{{ profile_user.first_name }} {{ profile_user.last_name }}</h2>
+                    <p class="text-secondary mb-3">@{{ profile_user.username }}</p>
+
+                    <p class="mb-4">{{ profile_user.profile.bio|default:"No bio yet." }}</p>
+
+                    {% if profile_user.profile.github_url %}
+                        <a href="{{ profile_user.profile.github_url }}" class="btn btn-outline-secondary btn-sm mb-2" target="_blank" rel="noopener noreferrer">
+                            <i data-lucide="github" class="me-1"></i> GitHub
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent p-3">
+                    {% if user == profile_user %}
+                        <a href="{% url 'accounts:edit_profile' %}" class="btn btn-secondary w-100">Edit Profile</a>
+                    {% else %}
+                        <div class="d-grid gap-2">
+                            {% if profile_user in user.profile.friends.all %}
+                                <a href="{% url 'start_conversation' username=profile_user.username %}" class="btn btn-primary">
+                                    <i data-lucide="message-square" class="me-2"></i>Message
+                                </a>
+                                <a href="{% url 'accounts:unfriend_user' username=profile_user.username %}" class="btn btn-danger">Unfriend</a>
+                            {% elif friend_request_status == 'pending' %}
+                                <button class="btn btn-secondary" disabled>Friend Request Sent</button>
+                            {% else %}
+                                <a href="{% url 'accounts:send_friend_request' to_user_username=profile_user.username %}" class="btn btn-primary">
+                                    <i data-lucide="user-plus" class="me-2"></i>Add Friend
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-        {% if user == profile_user %}
-            <a href="{% url 'edit_profile' %}" class="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block">Edit Profile</a>
-        {% else %}
-            {% if profile_user in user.profile.friends.all %}
-                <a href="{% url 'unfriend_user' username=profile_user.username %}" class="bg-red-500 text-white px-4 py-2 rounded mt-4">Unfriend</a>
-                <a href="{% url 'start_conversation' username=profile_user.username %}" class="bg-green-500 text-white px-4 py-2 rounded mt-4">Message</a>
-            {% elif friend_request_status == 'pending' %}
-                <p class="text-yellow-500 mt-4">Friend request sent</p>
-            {% elif friend_request_status == 'accepted' %}
-                 <a href="{% url 'unfriend_user' username=profile_user.username %}" class="bg-red-500 text-white px-4 py-2 rounded mt-4">Unfriend</a>
-                <a href="{% url 'start_conversation' username=profile_user.username %}" class="bg-green-500 text-white px-4 py-2 rounded mt-4">Message</a>
-            {% elif friend_request_status == 'declined' %}
-                <p class="text-red-500 mt-4">Friend request declined</p>
-            {% else %}
-                <a href="{% url 'send_friend_request' to_user_username=profile_user.username %}" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Add Friend</a>
-            {% endif %}
-            <a href="{% url 'block_user' username=profile_user.username %}" class="bg-gray-500 text-white px-4 py-2 rounded mt-4">Block</a>
-        {% endif %}
+
+        <!-- Right Content - Activity -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="h5 mb-0">Study Groups</h3>
+                </div>
+                <div class="card-body">
+                    {% with profile_user.study_groups.all as groups %}
+                        {% if groups %}
+                            <div class="row row-cols-1 row-cols-md-2 g-4">
+                                {% for group in groups %}
+                                    <div class="col">
+                                        <div class="card h-100">
+                                            <div class="card-body d-flex align-items-center">
+                                                {% if group.cover_image %}
+                                                    <img src="{{ group.cover_image.url }}" class="rounded me-3" alt="{{ group.name }}" style="width: 60px; height: 60px; object-fit: cover;">
+                                                {% else %}
+                                                    <div class="rounded me-3 bg-tertiary d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                        <i data-lucide="users" class="text-secondary"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div>
+                                                    <h5 class="card-title h6 mb-1">{{ group.name }}</h5>
+                                                    <p class="card-text text-secondary small">{{ group.members.count }} members</p>
+                                                </div>
+                                                <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-sm btn-secondary ms-auto stretched-link">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i data-lucide="inbox" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+                                <p class="text-secondary">{{ profile_user.username }} is not a member of any groups yet.</p>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
     </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    lucide.createIcons();
+</script>
 {% endblock %}

@@ -10,17 +10,6 @@ from django.http import JsonResponse
 from friends.models import Friendship
 from groups.models import StudyGroup
 
-def root_view(request):
-    if request.user.is_authenticated:
-        if request.user.is_superuser:
-            return render(request, 'admin_dashboard.html')
-        else:
-            friends = request.user.profile.friends.all()
-            groups = request.user.study_groups.all()
-            return render(request, 'dashboard.html', {'friends': friends, 'groups': groups})
-    else:
-        return render(request, 'landing.html')
-
 def register_view(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -28,7 +17,7 @@ def register_view(request):
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
             user.save()
-            return redirect('login')
+            return redirect('accounts:login')
     else:
         form = RegistrationForm()
     return render(request, 'accounts/register.html', {'form': form})
@@ -72,7 +61,7 @@ def edit_profile_view(request):
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            return redirect('profile')
+            return redirect('accounts:profile')
     else:
         user_form = UserForm(instance=request.user)
         profile_form = ProfileForm(instance=request.user.profile)
@@ -107,7 +96,7 @@ def send_friend_request(request, to_user_username):
     to_user = get_object_or_404(User, username=to_user_username)
     if not to_user.is_superuser:
         FriendRequest.objects.get_or_create(sender=request.user, receiver=to_user)
-    return redirect('view_profile', username=to_user_username)
+    return redirect('accounts:view_profile', username=to_user_username)
 
 @login_required
 def accept_friend_request(request, from_user_username):
@@ -119,7 +108,7 @@ def accept_friend_request(request, from_user_username):
     from_user.profile.friends.add(request.user)
     Friendship.objects.get_or_create(from_user=request.user, to_user=from_user)
     Friendship.objects.get_or_create(from_user=from_user, to_user=request.user)
-    return redirect('friend_requests_list')
+    return redirect('accounts:friend_requests_list')
 
 @login_required
 def reject_friend_request(request, from_user_username):
@@ -127,7 +116,7 @@ def reject_friend_request(request, from_user_username):
     friend_request = get_object_or_404(FriendRequest, sender=from_user, receiver=request.user)
     friend_request.status = 'declined'
     friend_request.save()
-    return redirect('friend_requests_list')
+    return redirect('accounts:friend_requests_list')
 
 @login_required
 def unfriend_user(request, username):
@@ -136,7 +125,7 @@ def unfriend_user(request, username):
     user_to_unfriend.profile.friends.remove(request.user)
     Friendship.objects.filter(from_user=request.user, to_user=user_to_unfriend).delete()
     Friendship.objects.filter(from_user=user_to_unfriend, to_user=request.user).delete()
-    return redirect('view_profile', username=username)
+    return redirect('accounts:view_profile', username=username)
 
 @login_required
 def block_user(request, username):
@@ -144,4 +133,4 @@ def block_user(request, username):
     request.user.profile.blocked_users.add(user_to_block)
     request.user.profile.friends.remove(user_to_block)
     user_to_block.profile.friends.remove(request.user)
-    return redirect('view_profile', username=username)
+    return redirect('accounts:view_profile', username=username)
