@@ -45,3 +45,13 @@ class GroupChatMessage(models.Model):
 
     def __str__(self):
         return f"Message by {self.user.username} in {self.group.name}"
+
+class GroupResource(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    group = models.ForeignKey(StudyGroup, on_delete=models.CASCADE, related_name='resources')
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to='group_resources/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Resource for {self.group.name} uploaded by {self.uploaded_by.username}"

@@ -3,205 +3,142 @@
 
 {% block title %}{{ group.name }}{% endblock %}
 
-{% block extra_head %}
-<style>
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 70px - var(--spacing-8) * 2); /* Full height minus topbar and padding */
-    }
-    .chat-messages {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: var(--spacing-4);
-    }
-    .chat-message {
-        display: flex;
-        margin-bottom: var(--spacing-4);
-        max-width: 80%;
-    }
-    .chat-message.current-user {
-        margin-left: auto;
-        flex-direction: row-reverse;
-    }
-    .chat-message .avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        margin-right: var(--spacing-3);
-    }
-    .chat-message.current-user .avatar {
-        margin-right: 0;
-        margin-left: var(--spacing-3);
-    }
-    .message-content {
-        background-color: var(--bg-secondary);
-        padding: var(--spacing-2) var(--spacing-4);
-        border-radius: var(--border-radius-lg);
-    }
-    .chat-message.current-user .message-content {
-        background-color: var(--accent);
-        color: white;
-    }
-    .message-meta {
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-    }
-    .chat-message.current-user .message-meta {
-        color: rgba(255, 255, 255, 0.7);
-    }
-</style>
-{% endblock %}
+{% block content_wrapper %}
+<div class="flex h-full">
+    <!-- This page uses the main sidebar from base.html -->
 
-{% block content %}
-<div class="row g-0">
-    <!-- Main Chat Area (70%) -->
-    <div class="col-md-8">
-        <div class="card rounded-0 rounded-start border-0 h-100">
-            <div class="chat-container">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0">#general</h2>
-                </div>
-
-                <div class="chat-messages" id="chat-log">
-                    {% for message in chat_messages %}
-                    <div class="chat-message {% if message.user == request.user %}current-user{% endif %}">
-                        <img src="{% if message.user.profile.avatar %}{{ message.user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ message.user.username }}&background=random{% endif %}" alt="{{ message.user.username }}" class="avatar">
-                        <div class="message-content">
-                            <div class="message-meta d-flex justify-content-between">
-                                <strong>{{ message.user.username }}</strong>
-                                <small>{{ message.created_at|date:"h:i A" }}</small>
-                            </div>
-                            <p class="mb-0">{{ message.content }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <div class="card-footer">
-                    <form id="chat-form" class="d-flex">
-                        <input id="chat-message-input" type="text" class="form-control" placeholder="Message in #general...">
-                        <button id="chat-message-submit" class="btn btn-primary ms-2 d-flex align-items-center">
-                            <i data-lucide="send" class="icon-sm"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sidebar (30%) -->
-    <div class="col-md-4">
-        <div class="card rounded-0 rounded-end border-0 border-start" style="height: calc(100vh - 70px - var(--spacing-8) * 2); overflow-y: auto;">
-            <div class="card-body">
-                <h3 class="h5 mb-3">{{ group.name }}</h3>
-                <p class="text-secondary mb-4">{{ group.description }}</p>
-
-                <hr class="my-4">
-
-                <!-- Members -->
-                <h4 class="h6 mb-3">Members ({{ group.members.count }})</h4>
-                <ul class="list-unstyled">
-                    {% for member in group.members.all %}
-                    <li class="d-flex align-items-center mb-3">
-                        <img src="{% if member.profile.avatar %}{{ member.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ member.username }}&background=random{% endif %}" alt="{{ member.username }}" class="rounded-circle me-3" width="32" height="32">
-                        <span>{{ member.username }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-
-                <hr class="my-4">
-
-                <!-- Study Sessions -->
-                <h4 class="h6 mb-3">Study Sessions</h4>
-                {% if is_member %}
-                <div class="card bg-light border-0 mb-4">
-                    <div class="card-body">
-                        <h5 class="h6 card-title">Start a new session</h5>
-                        <form method="post" action="{% url 'studySessions:start_session' group.id %}">
-                            {% csrf_token %}
-                            <div class="mb-2">
-                                <input type="text" name="title" class="form-control form-control-sm" placeholder="Session Title" required>
-                            </div>
-                            <div class="mb-2">
-                                <input type="number" name="duration_minutes" class="form-control form-control-sm" placeholder="Duration (minutes)" required>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-primary w-100">Start Session</button>
-                        </form>
-                    </div>
-                </div>
+    <!-- Center Chat Column -->
+    <main class="flex-1 flex flex-col bg-[#131B2E] border-l border-r border-[#2D3449]/50">
+        <header class="flex items-center justify-between p-4 border-b border-[#2D3449]/50">
+            <div class="flex items-center">
+                <h1 class="text-xl font-bold">{{ group.name }}</h1>
+                {% if has_active_session %}
+                    <span class="ml-3 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#00311F] text-[#00A572]">ACTIVE</span>
                 {% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="p-2 rounded-full hover:bg-[#222A3D]"><i data-lucide="search" class="w-5 h-5 text-[#958EA0]"></i></button>
+                <button class="p-2 rounded-full hover:bg-[#222A3D]"><i data-lucide="more-vertical" class="w-5 h-5 text-[#958EA0]"></i></button>
+            </div>
+        </header>
 
-                <h5 class="h6 mb-3">Past Sessions</h5>
-                <ul class="list-unstyled">
-                    {% for session in past_sessions %}
-                    <li class="mb-2">
-                        <a href="{% url 'studySessions:session_detail' session.id %}" class="text-decoration-none"># {{ session.title }}</a>
-                    </li>
-                    {% empty %}
-                    <li class="text-secondary">No past sessions yet.</li>
-                    {% endfor %}
-                </ul>
+        <div id="chat-log" class="flex-grow p-6 overflow-y-auto space-y-6">
+            {% for message in chat_messages %}
+            <div class="flex items-start gap-3 {% if message.user == request.user %}flex-row-reverse{% endif %}">
+                {% if message.user != request.user %}
+                <img src="{% if message.user.profile.avatar %}{{ message.user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ message.user.username|urlencode }}&background=random{% endif %}" alt="{{ message.user.username }}" class="w-8 h-8 rounded-full">
+                {% endif %}
+                <div class="max-w-md">
+                    {% if message.user != request.user %}
+                    <p class="text-sm font-semibold mb-1" style="color: hsl({{ message.user.id|add:180 }}, 70%, 70%);">{{ message.user.username }}</p>
+                    {% endif %}
+                    <div class="p-3 rounded-2xl {% if message.user == request.user %}bg-[#D0BCFF] text-[#0B1326]{% else %}bg-[#222A3D] text-white{% endif %}">
+                        <p class="text-sm">{{ message.content }}</p>
+                    </div>
+                </div>
+                <p class="text-xs text-[#958EA0] mt-1 self-end">{{ message.created_at|date:"P" }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="p-4 border-t border-[#2D3449]/50">
+            <form id="chat-form" class="flex items-center gap-2">
+                <button type="button" class="p-2 rounded-full hover:bg-[#222A3D]"><i data-lucide="plus" class="w-5 h-5 text-[#958EA0]"></i></button>
+                <input type="text" id="chat-message-input" placeholder="Type a message..." class="flex-grow bg-[#222A3D] rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#D0BCFF]">
+                <button type="button" class="p-2 rounded-full hover:bg-[#222A3D]"><i data-lucide="smile" class="w-5 h-5 text-[#958EA0]"></i></button>
+                <button id="chat-message-submit" type="submit" class="w-10 h-10 flex-shrink-0 rounded-full bg-[#D0BCFF] flex items-center justify-center">
+                    <i data-lucide="send" class="w-5 h-5 text-[#0B1326]"></i>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="w-80 flex-shrink-0 p-6 bg-[#171F33] overflow-y-auto">
+        <div class="flex items-center mb-6">
+            <img src="{% if request.user.profile.avatar %}{{ request.user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=random{% endif %}" alt="Avatar" class="w-10 h-10 rounded-full mr-3">
+            <div>
+                <div class="font-bold text-[#D0BCFF]">{{ request.user.profile.get_full_name|default:request.user.username }}</div>
+                <p class="text-xs text-[#958EA0]">Deep Work Mode</p>
             </div>
         </div>
-    </div>
-</div>
-{% endblock %}
 
-{% block extra_scripts %}
-{{ group.id|json_script:"group-id" }}
+        <div class="mb-6">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Study History</h3>
+            <div class="space-y-2">
+                {% for session in user_study_history %}
+                <a href="{% url 'studySessions:session_detail' session.id %}" class="flex items-center p-2 rounded-lg hover:bg-[#222A3D] {% if forloop.first %}bg-[#222A3D] border border-[#D0BCFF]/50{% endif %}">
+                    <i data-lucide="clock" class="w-4 h-4 mr-3 text-[#958EA0]"></i>
+                    <span class="text-sm">{{ session.title }}</span>
+                </a>
+                {% empty %}
+                <p class="text-sm text-[#958EA0]">No past sessions.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Members ({{ group.members.count }})</h3>
+            <div class="space-y-3">
+                {% for member in group.members.all %}
+                <div class="flex items-center">
+                    <img src="{% if member.profile.avatar %}{{ member.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ member.username|urlencode }}&background=random{% endif %}" alt="{{ member.username }}" class="w-8 h-8 rounded-full mr-3">
+                    <span class="text-sm font-medium">{{ member.username }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+
 <script>
-    const groupId = JSON.parse(document.getElementById('group-id').textContent);
+    const groupId = "{{ group.id }}";
+    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/group/${groupId}/`);
     const chatLog = document.getElementById('chat-log');
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-message-input');
 
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + groupId + '/'
-    );
-
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const message = data.message;
-        const user = data.user;
-        const avatarUrl = data.avatar_url || `https://ui-avatars.com/api/?name=${user}&background=random`;
-        const current_user = "{{ request.user.username }}";
+        const messageEl = document.createElement('div');
+        const isCurrentUser = data.user === "{{ request.user.username }}";
 
-        let messageHtml = `
-            <div class="chat-message ${user === current_user ? 'current-user' : ''}">
-                <img src="${avatarUrl}" alt="${user}" class="avatar">
-                <div class="message-content">
-                    <div class="message-meta d-flex justify-content-between">
-                        <strong>${user}</strong>
-                        <small>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
-                    </div>
-                    <p class="mb-0">${message}</p>
+        messageEl.classList.add('flex', 'items-start', 'gap-3');
+        if (isCurrentUser) {
+            messageEl.classList.add('flex-row-reverse');
+        }
+
+        let senderHtml = '';
+        if (!isCurrentUser) {
+            senderHtml = `
+                <img src="${data.avatar_url}" alt="${data.user}" class="w-8 h-8 rounded-full">
+                <div class="max-w-md">
+                    <p class="text-sm font-semibold mb-1" style="color: hsl(${ (data.user.charCodeAt(0) + data.user.length) * 20 % 360 }, 70%, 70%);">${data.user}</p>
+            `;
+        } else {
+            senderHtml = `<div class="max-w-md">`;
+        }
+
+        messageEl.innerHTML = `
+            ${senderHtml}
+                <div class="p-3 rounded-2xl ${isCurrentUser ? 'bg-[#D0BCFF] text-[#0B1326]' : 'bg-[#222A3D] text-white'}">
+                    <p class="text-sm">${data.message}</p>
                 </div>
             </div>
+            <p class="text-xs text-[#958EA0] mt-1 self-end">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
         `;
-        chatLog.innerHTML += messageHtml;
+        chatLog.appendChild(messageEl);
         chatLog.scrollTop = chatLog.scrollHeight;
-    };
-
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
     };
 
     chatForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const message = chatInput.value;
-        if (message.trim() !== '') {
-            chatSocket.send(JSON.stringify({
-                'message': message
-            }));
-            chatInput.value = '';
-        }
+        if (message.trim() === '') return;
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+        chatInput.value = '';
     });
-
-    // Scroll to bottom on page load
-    window.onload = () => {
-        chatLog.scrollTop = chatLog.scrollHeight;
-        lucide.createIcons();
-    }
 </script>
 {% endblock %}

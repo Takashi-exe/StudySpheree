@@ -7,24 +7,17 @@
     <option name="selectedModelId" value="gpt-5-mini" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d0fbd148-d2d4-4dd1-8fb6-0a080959c07d" name="Changes" comment="Started working on group chats">
-      <change afterPath="$PROJECT_DIR$/templates/landing_base.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/messaging/inbox_panel.html" afterDir="false" />
+    <list default="true" id="d0fbd148-d2d4-4dd1-8fb6-0a080959c07d" name="Changes" comment="UI Overhaul">
+      <change afterPath="$PROJECT_DIR$/groups/consumers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/groups/routing.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/accounts/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/accounts/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/messaging/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/messaging/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/css/variables.css" beforeDir="false" afterPath="$PROJECT_DIR$/static/css/variables.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/studysphere/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/studysphere/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/accounts/friend_requests.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/accounts/friend_requests.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/accounts/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/accounts/login.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/accounts/profile.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/accounts/profile.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/accounts/register.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/accounts/register.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/accounts/user_search.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/accounts/user_search.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/groups/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/groups/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/groups/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/groups/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/groups/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/groups/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/groups/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/groups/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/messaging/consumers.py" beforeDir="false" afterPath="$PROJECT_DIR$/messaging/consumers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/landing.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/landing.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/messaging/conversation_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/messaging/conversation_detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/messaging/conversation_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/messaging/conversation_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/groups/group_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/groups/group_detail.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -154,7 +147,7 @@
       <workItem from="1782260308703" duration="3376000" />
       <workItem from="1782344030615" duration="574000" />
       <workItem from="1782344658583" duration="5050000" />
-      <workItem from="1782350290749" duration="10758000" />
+      <workItem from="1782350290749" duration="13158000" />
     </task>
     <task id="LOCAL-00001" summary="Initial Commit">
       <option name="closed" value="true" />
@@ -220,7 +213,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782391772765</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="UI Overhaul">
+      <option name="closed" value="true" />
+      <created>1782465619438</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1782465619438</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -230,6 +231,7 @@
     <MESSAGE value="Initial Commit" />
     <MESSAGE value="Worked on user Profiles, friend system and private messaging system" />
     <MESSAGE value="Started working on group chats" />
-    <option name="LAST_COMMIT_MESSAGE" value="Started working on group chats" />
+    <MESSAGE value="UI Overhaul" />
+    <option name="LAST_COMMIT_MESSAGE" value="UI Overhaul" />
   </component>
 </project>

@@ -8,4 +8,5 @@ urlpatterns = [
     path('create/', views.create_group, name='create_group'),
     path('<uuid:group_id>/', views.group_detail, name='group_detail'),
     path('join/<uuid:invite_code>/', views.join_group, name='join_group'),
+    path('<uuid:group_id>/upload/', views.upload_resource, name='upload_resource'),
 ]

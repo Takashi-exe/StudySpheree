@@ -1,13 +1,13 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Message, Conversation
 from django.contrib.auth.models import User
+from .models import StudyGroup, GroupChatMessage
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class GroupChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
-        self.conversation_group_name = f'chat_{self.conversation_id}'
+        self.group_id = self.scope['url_route']['kwargs']['group_id']
+        self.group_name = f'group_{self.group_id}'
         self.user = self.scope['user']
 
         if not self.user.is_authenticated:
@@ -15,15 +15,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         await self.channel_layer.group_add(
-            self.conversation_group_name,
+            self.group_name,
             self.channel_name
         )
-
         await self.accept()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
-            self.conversation_group_name,
+            self.group_name,
             self.channel_name
         )
 
@@ -37,21 +36,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
         new_message = await self.save_message(message)
 
         await self.channel_layer.group_send(
-            self.conversation_group_name,
+            self.group_name,
             {
                 'type': 'chat_message',
-                'message': new_message.text,
-                'sender': self.user.username
+                'message': new_message.content,
+                'user': self.user.username,
+                'avatar_url': await self.get_avatar_url(self.user)
             }
         )
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             'message': event['message'],
-            'sender': event['sender']
+            'user': event['user'],
+            'avatar_url': event['avatar_url']
         }))
 
     @database_sync_to_async
     def save_message(self, message):
-        conversation = Conversation.objects.get(id=self.conversation_id)
-        return Message.objects.create(conversation=conversation, sender=self.user, text=message)
+        group = StudyGroup.objects.get(id=self.group_id)
+        return GroupChatMessage.objects.create(group=group, user=self.user, content=message)
+
+    @database_sync_to_async
+    def get_avatar_url(self, user):
+        if user.profile.avatar:
+            return user.profile.avatar.url
+        return f"https://ui-avatars.com/api/?name={user.username.replace(' ', '+')}&background=random"
