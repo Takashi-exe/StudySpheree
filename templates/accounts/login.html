@@ -1,52 +1,90 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 {% load static %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Login to Study Sphere{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/variables.css' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0B1326;
+            background-image: radial-gradient(circle at center, #340080 0%, #0B1326 60%);
+            color: var(--text-headings);
+        }
+    </style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
-        <div class="col-lg-4 col-md-6">
-            <div class="card shadow-lg">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <a href="{% url 'root' %}" class="sidebar-logo h2 text-decoration-none">StudySphere</a>
-                        <h1 class="h3 mt-3">Sign in to your account</h1>
-                        <p class="text-secondary">Welcome back!</p>
+<div class="flex flex-col items-center justify-center min-h-screen px-4">
+    <div class="text-center mb-8">
+        <div class="inline-block p-3 rounded-xl" style="background-color: #222A3D;">
+            <i data-lucide="book-bookmark" style="color: #CBC3D7;"></i>
+        </div>
+        <h1 class="text-3xl font-bold mt-4" style="color: #FFFFFF;">Study Sphere</h1>
+        <p style="color: #958EA0;">Deep Focus Workspace</p>
+    </div>
+
+    <div class="w-full max-w-md p-8 rounded-2xl border" style="background-color: #131B2E; border-color: rgba(73, 68, 84, 0.3);">
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+                <div class="mb-4 text-center text-red-400">
+                    Your username and password didn't match. Please try again.
+                </div>
+            {% endif %}
+
+            <div class="mb-4">
+                <label for="id_username" class="block text-xs font-medium tracking-wider uppercase" style="color: #958EA0;">Username or Email</label>
+                <div class="relative mt-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="at-sign" class="w-4 h-4" style="color: #D0BCFF;"></i>
                     </div>
-
-                    {% if form.errors %}
-                        <div class="alert alert-danger" role="alert">
-                            Your username and password didn't match. Please try again.
-                        </div>
-                    {% endif %}
-
-                    <form method="post">
-                        {% csrf_token %}
-
-                        <div class="mb-3">
-                            <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
-                            <input type="text" name="username" id="{{ form.username.id_for_label }}" class="form-control form-control-lg" required autofocus>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
-                            <input type="password" name="password" id="{{ form.password.id_for_label }}" class="form-control form-control-lg" required>
-                        </div>
-
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg">Login</button>
-                        </div>
-
-                        <div class="text-center">
-                            <p class="text-secondary">
-                                Don't have an account? <a href="{% url 'accounts:register' %}">Register here</a>
-                            </p>
-                        </div>
-                    </form>
+                    <input type="text" name="username" id="id_username" class="w-full pl-10 pr-3 py-2 rounded-lg border" style="background-color: rgba(30, 41, 59, 0.7); border-color: rgba(73, 68, 84, 0.3);" placeholder="alex@sphere.edu" required autofocus>
                 </div>
             </div>
-        </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between items-center">
+                    <label for="id_password" class="block text-xs font-medium tracking-wider uppercase" style="color: #958EA0;">Password</label>
+                    <a href="#" class="text-xs font-medium" style="color: #A078FF;">Forgot Password?</a>
+                </div>
+                <div class="relative mt-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="lock" class="w-4 h-4" style="color: #D0BCFF;"></i>
+                    </div>
+                    <input type="password" name="password" id="id_password" class="w-full pl-10 pr-3 py-2 rounded-lg border" style="background-color: rgba(30, 41, 59, 0.7); border-color: rgba(73, 68, 84, 0.3);" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input type="checkbox" name="remember_me" class="rounded" style="background-color: #1E293B; border-color: rgba(73, 68, 84, 0.3);">
+                    <span class="ml-2 text-sm" style="color: #958EA0;">Remember me</span>
+                </label>
+            </div>
+
+            <button type="submit" class="w-full flex items-center justify-center py-3 px-4 rounded-lg font-bold" style="background-color: #D0BCFF; color: #0B1326;">
+                Sign In
+                <i data-lucide="arrow-right" class="w-4 h-4 ml-2" style="color: #0B1326;"></i>
+            </button>
+        </form>
     </div>
+
+    <p class="mt-8 text-center text-sm" style="color: #958EA0;">
+        Don't have an account? <a href="{% url 'accounts:register' %}" class="font-medium" style="color: #D0BCFF;">Register</a>
+    </p>
+
+    <footer class="absolute bottom-0 w-full py-6 px-4 md:px-8">
+        <div class="flex justify-between text-xs" style="color: #494454;">
+            <p>© 2026 Study Sphere Inc.</p>
+            <div class="flex gap-4">
+                <a href="#" class="hover:text-white">Privacy Policy</a>
+                <a href="#" class="hover:text-white">Terms of Service</a>
+                <a href="#" class="hover:text-white">Contact Support</a>
+            </div>
+        </div>
+    </footer>
 </div>
 {% endblock %}

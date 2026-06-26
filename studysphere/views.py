@@ -5,7 +5,7 @@ def root_view(request):
         if request.user.is_superuser:
             return render(request, 'admin_dashboard.html')
         else:
-            friends = request.user.profile.friends.all()
+            friends = request.user.profile.friends.exclude(id=request.user.id)
             groups = request.user.study_groups.all()
             return render(request, 'dashboard.html', {'friends': friends, 'groups': groups})
     else:

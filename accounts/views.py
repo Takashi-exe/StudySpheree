@@ -7,8 +7,9 @@ from .models import Profile, FriendRequest
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import JsonResponse
-from friends.models import Friendship
-from groups.models import StudyGroup
+from django.utils import timezone
+from django.contrib import messages
+from django.core.paginator import Paginator
 
 def register_view(request):
     if request.method == 'POST':
@@ -41,15 +42,29 @@ def logout_view(request):
 @login_required
 def profile_view(request, username=None):
     if username:
-        user = get_object_or_404(User, username=username)
+        profile_user = get_object_or_404(User, username=username)
     else:
-        user = request.user
-    
-    friend_request, created = FriendRequest.objects.get_or_create(sender=request.user, receiver=user)
-    
+        profile_user = request.user
+
+    friendship_status = 'none'
+    if request.user.is_authenticated and request.user != profile_user:
+        if profile_user in request.user.profile.friends.all():
+            friendship_status = 'friends'
+        elif profile_user in request.user.profile.blocked_users.all():
+            friendship_status = 'blocked_by_you'
+        elif request.user in profile_user.profile.blocked_users.all():
+            friendship_status = 'blocked_by_them'
+        else:
+            request_sent = FriendRequest.objects.filter(sender=request.user, receiver=profile_user, status='pending').exists()
+            request_received = FriendRequest.objects.filter(sender=profile_user, receiver=request.user, status='pending').exists()
+            if request_sent:
+                friendship_status = 'sent'
+            elif request_received:
+                friendship_status = 'received'
+
     context = {
-        'profile_user': user,
-        'friend_request_status': friend_request.status,
+        'profile_user': profile_user,
+        'friendship_status': friendship_status,
     }
     return render(request, 'accounts/profile.html', context)
 
@@ -73,13 +88,48 @@ def user_search(request):
 
 @login_required
 def api_user_search(request):
-    query = request.GET.get('q')
-    if query:
-        users = User.objects.filter(Q(username__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query)).exclude(username=request.user.username).exclude(is_superuser=True)
-        data = {'users': list(users.values('username', 'first_name', 'last_name'))}
-    else:
-        data = {'users': []}
-    return JsonResponse(data)
+    query = request.GET.get('q', '')
+    page_number = request.GET.get('page', 1)
+    
+    if not query:
+        return JsonResponse({'users': [], 'has_next': False, 'total_results': 0})
+
+    user_list = User.objects.filter(
+        Q(username__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query)
+    ).exclude(username=request.user.username).exclude(is_superuser=True).select_related('profile').prefetch_related('study_groups')
+
+    paginator = Paginator(user_list, 8) # 8 results per page
+    page_obj = paginator.get_page(page_number)
+
+    current_user_friends = request.user.profile.friends.all()
+    sent_requests = FriendRequest.objects.filter(sender=request.user, status='pending').values_list('receiver_id', flat=True)
+    current_user_groups = request.user.study_groups.all()
+
+    data = []
+    for user in page_obj:
+        friendship_status = 'none'
+        if user in current_user_friends:
+            friendship_status = 'friends'
+        elif user.id in sent_requests:
+            friendship_status = 'sent'
+
+        common_groups = user.study_groups.filter(id__in=current_user_groups.values_list('id', flat=True))
+
+        data.append({
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'avatar': user.profile.avatar.url if user.profile.avatar else f"https://ui-avatars.com/api/?name={user.username.replace(' ', '+')}&background=random",
+            'friendship_status': friendship_status,
+            'common_groups': list(common_groups.values_list('name', flat=True)[:2]) # Limit to 2
+        })
+
+    return JsonResponse({
+        'users': data,
+        'has_next': page_obj.has_next(),
+        'total_results': paginator.count
+    })
+
 
 @login_required
 def friends_list(request):
@@ -94,43 +144,97 @@ def friend_requests_list(request):
 @login_required
 def send_friend_request(request, to_user_username):
     to_user = get_object_or_404(User, username=to_user_username)
-    if not to_user.is_superuser:
-        FriendRequest.objects.get_or_create(sender=request.user, receiver=to_user)
+
+    if to_user == request.user:
+        messages.error(request, "You cannot send a friend request to yourself.")
+        return redirect('accounts:view_profile', username=to_user_username)
+
+    if to_user in request.user.profile.blocked_users.all() or request.user in to_user.profile.blocked_users.all():
+        messages.error(request, "Cannot send friend request to a blocked user.")
+        return redirect('accounts:view_profile', username=to_user_username)
+
+    pending_request = FriendRequest.objects.filter(sender=to_user, receiver=request.user, status='pending').first()
+    if pending_request:
+        return accept_friend_request(request, to_user.username)
+
+    friend_request, created = FriendRequest.objects.get_or_create(
+        sender=request.user, 
+        receiver=to_user,
+        defaults={'status': 'pending'}
+    )
+
+    if not created and friend_request.status == 'declined':
+        friend_request.status = 'pending'
+        friend_request.created_at = timezone.now()
+        friend_request.save()
+        messages.success(request, "Friend request sent again.")
+    elif not created:
+        messages.info(request, "Friend request already pending.")
+    else:
+        messages.success(request, "Friend request sent.")
+
     return redirect('accounts:view_profile', username=to_user_username)
 
 @login_required
 def accept_friend_request(request, from_user_username):
     from_user = get_object_or_404(User, username=from_user_username)
-    friend_request = get_object_or_404(FriendRequest, sender=from_user, receiver=request.user)
+
+    if from_user == request.user:
+        messages.error(request, "You cannot accept a friend request from yourself.")
+        return redirect('accounts:friend_requests_list')
+
+    friend_request = get_object_or_404(FriendRequest, sender=from_user, receiver=request.user, status='pending')
+    
     friend_request.status = 'accepted'
     friend_request.save()
+    
     request.user.profile.friends.add(from_user)
     from_user.profile.friends.add(request.user)
-    Friendship.objects.get_or_create(from_user=request.user, to_user=from_user)
-    Friendship.objects.get_or_create(from_user=from_user, to_user=request.user)
+    
+    FriendRequest.objects.filter(sender=request.user, receiver=from_user).delete()
+    
+    messages.success(request, f"You are now friends with {from_user.username}.")
     return redirect('accounts:friend_requests_list')
 
 @login_required
 def reject_friend_request(request, from_user_username):
     from_user = get_object_or_404(User, username=from_user_username)
-    friend_request = get_object_or_404(FriendRequest, sender=from_user, receiver=request.user)
+    friend_request = get_object_or_404(FriendRequest, sender=from_user, receiver=request.user, status='pending')
     friend_request.status = 'declined'
     friend_request.save()
+    messages.info(request, "Friend request declined.")
     return redirect('accounts:friend_requests_list')
 
 @login_required
 def unfriend_user(request, username):
     user_to_unfriend = get_object_or_404(User, username=username)
+    
     request.user.profile.friends.remove(user_to_unfriend)
     user_to_unfriend.profile.friends.remove(request.user)
-    Friendship.objects.filter(from_user=request.user, to_user=user_to_unfriend).delete()
-    Friendship.objects.filter(from_user=user_to_unfriend, to_user=request.user).delete()
+    
+    FriendRequest.objects.filter(
+        (Q(sender=request.user, receiver=user_to_unfriend) | Q(sender=user_to_unfriend, receiver=request.user))
+    ).update(status='declined')
+    
+    messages.info(request, f"You are no longer friends with {user_to_unfriend.username}.")
     return redirect('accounts:view_profile', username=username)
 
 @login_required
 def block_user(request, username):
     user_to_block = get_object_or_404(User, username=username)
+
+    if user_to_block == request.user:
+        messages.error(request, "You cannot block yourself.")
+        return redirect('accounts:view_profile', username=username)
+
     request.user.profile.blocked_users.add(user_to_block)
+    
     request.user.profile.friends.remove(user_to_block)
     user_to_block.profile.friends.remove(request.user)
+    
+    FriendRequest.objects.filter(
+        (Q(sender=request.user, receiver=user_to_block) | Q(sender=user_to_block, receiver=request.user))
+    ).delete()
+    
+    messages.success(request, f"{user_to_block.username} has been blocked.")
     return redirect('accounts:view_profile', username=username)

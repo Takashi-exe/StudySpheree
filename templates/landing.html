@@ -1,19 +1,103 @@
-{% extends "base.html" %}
+{% extends "landing_base.html" %}
 {% load static %}
 
-{% block title %}Welcome to StudySphere{% endblock %}
+{% block title %}Study better, together.{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/variables.css' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: var(--bg-page); color: var(--text-headings); }
+        .bg-surface-primary { background-color: var(--bg-surface-primary); }
+        .bg-surface-secondary { background-color: var(--bg-surface-secondary); }
+        .border-primary { border-color: var(--border-primary); }
+        .text-accent-primary { color: var(--accent-primary); }
+        .bg-accent-primary { background-color: var(--accent-primary); }
+        .text-muted { color: var(--text-muted); }
+        .hover\:bg-accent-primary-darker:hover { background-color: #b3a2e0; } /* Slightly darker for hover */
+        .hover\:bg-surface-tertiary:hover { background-color: var(--bg-surface-tertiary); }
+    </style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
-        <div class="col-lg-8 text-center">
-            <h1 class="display-3 fw-bold mb-4">Welcome to StudySphere</h1>
-            <p class="lead text-secondary mb-5">Your modern, collaborative learning platform.</p>
-            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg px-4 gap-3">Login</a>
-                <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary btn-lg px-4">Register</a>
+<div class="max-w-5xl mx-auto px-4">
+    <header class="text-center pt-24 pb-12">
+        <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-headings">Study better, together.</h1>
+        <p class="mt-4 max-w-2xl mx-auto text-lg text-muted">
+            The high-performance workspace for students. Organize collaborative study groups, set deep-work timers, and master your subjects with a global community.
+        </p>
+        <div class="mt-8 flex justify-center gap-4">
+            <a href="{% url 'accounts:register' %}" class="inline-block rounded-lg bg-accent-primary px-6 py-3 text-center font-medium text-black hover:bg-accent-primary-darker">
+                Get Started
+            </a>
+            <a href="{% url 'accounts:login' %}" class="inline-block rounded-lg bg-surface-tertiary px-6 py-3 text-center font-medium text-headings hover:bg-surface-tertiary">
+                Login to your account
+            </a>
+        </div>
+    </header>
+
+    <main>
+        <div class="mt-12 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-surface-primary p-8 rounded-xl">
+                <div>
+                    <i data-lucide="users" class="w-8 h-8 text-muted"></i>
+                    <h2 class="mt-4 text-2xl font-bold text-headings">Collaborative Study Rooms</h2>
+                    <p class="mt-2 text-muted">
+                        Join real-time study halls with voice, chat, and shared whiteboards. Never feel alone during long nights of preparation again.
+                    </p>
+                </div>
+                <div class="flex items-center justify-center h-48 rounded-lg bg-surface-secondary">
+                    <div class="text-muted">Image placeholder</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-surface-primary p-8 rounded-xl">
+                <div>
+                    <h2 class="text-2xl font-bold text-headings">Global Library Access</h2>
+                    <p class="mt-2 text-muted">
+                        Access shared resources, community-vetted notes, and lecture summaries from top universities.
+                    </p>
+                </div>
+                <div class="flex items-center justify-center h-48">
+                    <i data-lucide="book-open" class="w-24 h-24 text-muted"></i>
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="mt-24 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <div class="text-5xl font-bold text-accent-primary">500K+</div>
+                    <div class="mt-2 text-muted">Active Students</div>
+                </div>
+                <div>
+                    <div class="text-5xl font-bold text-accent-primary">15k</div>
+                    <div class="mt-2 text-muted">Study Groups</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-8 mt-24 border-t border-primary">
+        <div class="flex justify-between items-center">
+            <div>
+                <div class="text-sm font-bold tracking-wider text-headings">STUDY SPHERE</div>
+                <div class="text-xs text-muted">© 2026 Study Sphere Inc. Built for deep focus.</div>
+            </div>
+            <div class="flex gap-6 text-sm">
+                <a href="#" class="text-muted hover:text-headings">Privacy Policy</a>
+                <a href="#" class="text-muted hover:text-headings">Terms of Service</a>
+                <a href="#" class="text-muted hover:text-headings">Contact Support</a>
+            </div>
+            <div class="flex gap-4">
+                <div class="w-8 h-8 bg-surface-tertiary rounded-full flex items-center justify-center">
+                    <i data-lucide="send" class="w-4 h-4 text-muted"></i>
+                </div>
+                <div class="w-8 h-8 bg-surface-tertiary rounded-full flex items-center justify-center">
+                    <i data-lucide="circle" class="w-4 h-4 text-muted"></i>
+                </div>
+            </div>
+        </div>
+    </footer>
 </div>
 {% endblock %}

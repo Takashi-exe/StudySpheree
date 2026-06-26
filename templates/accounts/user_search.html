@@ -1,112 +1,196 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}User Search{% endblock %}
+{% block title %}Find Peers{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Page Header -->
-            <div class="text-center mb-5">
-                <h1 class="h2">Find New People</h1>
-                <p class="text-secondary">Search for other users on StudySphere to connect with.</p>
+<div class="p-8 bg-[#171F33] min-h-full">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-white">Find your peers</h1>
+            <div class="flex items-center gap-4">
+                <button class="p-2 rounded-full bg-[#0B1326]"><i data-lucide="bell" class="w-5 h-5 text-[#958EA0]"></i></button>
+                <button class="p-2 rounded-full bg-[#0B1326]"><i data-lucide="settings" class="w-5 h-5 text-[#958EA0]"></i></button>
             </div>
+        </div>
 
-            <!-- Search Input -->
-            <div class="mb-4">
-                <div class="input-group input-group-lg">
-                    <span class="input-group-text" id="search-addon"><i data-lucide="search"></i></span>
-                    <input type="text" id="search-input" class="form-control" placeholder="Start typing to search for users..." aria-label="Search users" aria-describedby="search-addon">
-                </div>
+        <div class="flex gap-4 mb-8">
+            <div class="relative flex-grow">
+                <i data-lucide="search" class="w-5 h-5 text-[#CBC3D7] absolute top-1/2 left-4 -translate-y-1/2"></i>
+                <input type="text" id="search-input" class="w-full bg-[#1E293B]/70 rounded-lg pl-12 pr-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[#D0BCFF]" placeholder="Search by username">
             </div>
+            <button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0B1326]/80 border border-[#2D3449] text-[#CBC3D7] hover:bg-[#222A3D]">
+                <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+                Filters
+            </button>
+        </div>
 
-            <!-- Search Results -->
-            <div class="card">
-                <div class="card-body" id="search-results-container" style="min-height: 300px;">
-                    <!-- Initial state -->
-                    <div class="text-center py-5" id="initial-state">
-                        <i data-lucide="search" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
-                        <h5 class="card-title">Search for Users</h5>
-                        <p class="text-secondary">Results will be displayed here.</p>
-                    </div>
-                    <!-- No results state (hidden by default) -->
-                    <div class="text-center py-5 d-none" id="no-results-state">
-                        <i data-lucide="frown" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
-                        <h5 class="card-title">No Users Found</h5>
-                        <p class="text-secondary">Try a different search query.</p>
-                    </div>
-                    <!-- Results list -->
-                    <ul class="list-group list-group-flush d-none" id="results-list"></ul>
-                </div>
-            </div>
+        <div id="search-results-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Results will be injected here -->
+        </div>
+
+        <div id="search-footer" class="text-center mt-8 space-y-4">
+            <p id="result-count" class="text-sm text-[#958EA0] hidden"></p>
+            <button id="load-more-btn" class="hidden items-center gap-2 px-4 py-2 rounded-lg text-[#ADC6FF] hover:bg-[#222A3D]">
+                Load more results
+                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+            <div id="error-state" class="text-red-400 hidden">Something went wrong. Please try again.</div>
+            <div id="no-results-state" class="text-[#958EA0] hidden">No users found.</div>
         </div>
     </div>
 </div>
+
+<template id="user-card-template">
+    <div class="bg-[#0B1326]/80 rounded-xl p-4 text-center border border-[#2D3449] hover:bg-[#222A3D]">
+        <img src="" alt="avatar" class="w-20 h-20 rounded-full mx-auto mb-4">
+        <p class="font-bold text-white"></p>
+        <p class="text-sm text-[#494454]/50 mb-4">@<span class="username"></span> •</p>
+
+        <p class="text-xs uppercase text-[#958EA0] mb-2">Common Groups</p>
+        <div class="flex flex-wrap justify-center gap-2 min-h-[24px] mb-4 common-groups-container">
+            <!-- Group tags will be injected here -->
+        </div>
+
+        <div class="action-button-container">
+            <!-- Action button will be injected here -->
+        </div>
+    </div>
+</template>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     const searchInput = document.getElementById('search-input');
-    const resultsContainer = document.getElementById('search-results-container');
-    const initialState = document.getElementById('initial-state');
+    const resultsGrid = document.getElementById('search-results-grid');
+    const resultCount = document.getElementById('result-count');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    const errorState = document.getElementById('error-state');
     const noResultsState = document.getElementById('no-results-state');
-    const resultsList = document.getElementById('results-list');
+    const userCardTemplate = document.getElementById('user-card-template');
 
-    let searchTimeout;
+    const searchUrl = "{% url 'accounts:api_user_search' %}";
+    let currentPage = 1;
+    let currentQuery = '';
+    let totalResults = 0;
+    let debounceTimeout;
 
-    searchInput.addEventListener('keyup', () => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const query = searchInput.value.trim();
-            if (query.length > 1) {
-                fetch(`/api/user_search/?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        initialState.classList.add('d-none');
-                        resultsList.innerHTML = '';
+    function escapeHtml(unsafe) {
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
 
-                        if (data.users.length > 0) {
-                            noResultsState.classList.add('d-none');
-                            resultsList.classList.remove('d-none');
+    function createActionButton(user) {
+        const profileUrl = "{% url 'accounts:view_profile' 'USERNAME_PLACEHOLDER' %}".replace('USERNAME_PLACEHOLDER', user.username);
+        const messageUrl = "{% url 'start_conversation' 'USERNAME_PLACEHOLDER' %}".replace('USERNAME_PLACEHOLDER', user.username);
+        const addFriendUrl = "{% url 'accounts:send_friend_request' 'USERNAME_PLACEHOLDER' %}".replace('USERNAME_PLACEHOLDER', user.username);
 
-                            data.users.forEach(user => {
-                                const li = document.createElement('li');
-                                li.className = 'list-group-item d-flex align-items-center';
+        if (user.friendship_status === 'friends') {
+            return `<a href="${messageUrl}" class="w-full block px-4 py-2 rounded-lg text-sm font-semibold bg-[#D0BCFF] text-[#0B1326]">Message</a>`;
+        } else if (user.friendship_status === 'sent') {
+            return `<button class="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-[#222A3D] text-[#958EA0]" disabled>Requested</button>`;
+        } else {
+            return `<a href="${addFriendUrl}" class="w-full block px-4 py-2 rounded-lg text-sm font-semibold bg-[#A078FF] text-white">Add Friend</a>`;
+        }
+    }
 
-                                const avatarUrl = `https://ui-avatars.com/api/?name=${user.username}&background=random`;
+    function renderUsers(users, append = false) {
+        if (!append) {
+            resultsGrid.innerHTML = '';
+        }
 
-                                li.innerHTML = `
-                                    <a href="/profile/${user.username}/" class="text-decoration-none d-flex align-items-center flex-grow-1">
-                                        <img src="${avatarUrl}" alt="${user.username}" class="rounded-circle me-3" width="40" height="40">
-                                        <div>
-                                            <h6 class="mb-0 text-primary">${user.username}</h6>
-                                            <small class="text-secondary">${user.first_name || ''} ${user.last_name || ''}</small>
-                                        </div>
-                                    </a>
-                                    <a href="/profile/${user.username}/" class="btn btn-sm btn-outline-secondary">View Profile</a>
-                                `;
-                                resultsList.appendChild(li);
-                            });
-                        } else {
-                            resultsList.classList.add('d-none');
-                            noResultsState.classList.remove('d-none');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching search results:', error);
-                        resultsList.classList.add('d-none');
-                        noResultsState.classList.remove('d-none');
-                    });
+        if (users.length === 0 && !append) {
+            noResultsState.classList.remove('hidden');
+        } else {
+            noResultsState.classList.add('hidden');
+        }
+
+        users.forEach(user => {
+            const card = userCardTemplate.content.cloneNode(true);
+            card.querySelector('img').src = user.avatar;
+            card.querySelector('img').alt = user.username;
+            card.querySelector('.font-bold').textContent = `${escapeHtml(user.first_name || '')} ${escapeHtml(user.last_name || '')}`.trim() || escapeHtml(user.username);
+            card.querySelector('.username').textContent = escapeHtml(user.username);
+
+            const groupsContainer = card.querySelector('.common-groups-container');
+            if (user.common_groups.length > 0) {
+                user.common_groups.forEach(groupName => {
+                    const groupTag = document.createElement('span');
+                    groupTag.className = 'px-2 py-0.5 rounded-full text-xs bg-[#340080] text-[#D0BCFF]';
+                    groupTag.textContent = escapeHtml(groupName);
+                    groupsContainer.appendChild(groupTag);
+                });
             } else {
-                resultsList.innerHTML = '';
-                resultsList.classList.add('d-none');
-                noResultsState.classList.add('d-none');
-                initialState.classList.remove('d-none');
+                const noGroupsEl = document.createElement('p');
+                noGroupsEl.className = 'text-xs text-[#958EA0]';
+                noGroupsEl.textContent = 'NO COMMON GROUPS';
+                groupsContainer.appendChild(noGroupsEl);
             }
-        }, 300); // Debounce API calls
+
+            card.querySelector('.action-button-container').innerHTML = createActionButton(user);
+            resultsGrid.appendChild(card);
+        });
+    }
+
+    function performSearch(query, page = 1, append = false) {
+        errorState.classList.add('hidden');
+        const url = `${searchUrl}?q=${encodeURIComponent(query)}&page=${page}`;
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                totalResults = data.total_results;
+                renderUsers(data.users, append);
+
+                const displayedCount = resultsGrid.children.length;
+                resultCount.textContent = `Showing ${displayedCount} of ${totalResults} peers`;
+                resultCount.classList.remove('hidden');
+
+                if (data.has_next) {
+                    loadMoreBtn.classList.remove('hidden');
+                    currentPage = page + 1;
+                } else {
+                    loadMoreBtn.classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                errorState.classList.remove('hidden');
+                resultsGrid.innerHTML = '';
+                resultCount.classList.add('hidden');
+                loadMoreBtn.classList.add('hidden');
+            });
+    }
+
+    searchInput.addEventListener('keyup', (e) => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const query = e.target.value.trim();
+            if (query.length > 1) {
+                currentQuery = query;
+                currentPage = 1;
+                performSearch(currentQuery, currentPage);
+            } else {
+                currentQuery = '';
+                resultsGrid.innerHTML = '';
+                resultCount.classList.add('hidden');
+                loadMoreBtn.classList.add('hidden');
+                noResultsState.classList.add('hidden');
+            }
+        }, 250);
     });
 
-    lucide.createIcons();
+    loadMoreBtn.addEventListener('click', () => {
+        if (currentQuery) {
+            performSearch(currentQuery, currentPage, true);
+        }
+    });
 </script>
 {% endblock %}
