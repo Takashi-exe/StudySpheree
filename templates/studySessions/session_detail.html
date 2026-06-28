@@ -1,155 +1,179 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Study Session: {{ session.title }}{% endblock %}
+{% block title %}{{ session.title }}{% endblock %}
 
-{% block extra_head %}
-<style>
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 70px - var(--spacing-8) * 2);
-    }
-    .chat-messages {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: var(--spacing-4);
-    }
-    .timer-ring {
-        width: 150px;
-        height: 150px;
-        position: relative;
-    }
-    .timer-ring__svg {
-        transform: rotate(-90deg);
-    }
-    .timer-ring__circle {
-        transition: stroke-dashoffset 0.3s;
-        stroke: var(--accent);
-        stroke-width: 8;
-        fill: transparent;
-    }
-    .timer-ring__background {
-        stroke: var(--bg-tertiary);
-        stroke-width: 8;
-        fill: transparent;
-    }
-    .timer-ring__text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 1.75rem;
-        font-weight: 700;
-        font-family: var(--font-display);
-    }
-</style>
-{% endblock %}
+{% block content_wrapper %}
+<div class="flex h-full">
+    <!-- This page uses the main sidebar from base.html -->
 
-{% block content %}
-<div class="row g-0">
-    <!-- Main Chat Area -->
-    <div class="col-md-8">
-        <div class="card rounded-0 rounded-start border-0 h-100">
-            <div class="chat-container">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">Session Chat</h2>
-                </div>
-                <div class="chat-messages" id="posts">
-                    {% for post in posts %}
-                    <div class="d-flex align-items-start mb-4">
-                        <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ post.author.username }}&background=random{% endif %}" alt="Avatar" class="rounded-circle me-3" width="40" height="40">
-                        <div>
-                            <div class="d-flex align-items-baseline">
-                                <strong class="me-2">{{ post.author.username }}</strong>
-                                <small class="text-secondary">{{ post.created_at|date:"h:i A" }}</small>
-                            </div>
-                            <p class="mb-0">{{ post.content }}</p>
+    <!-- Center Column -->
+    <main class="flex-1 flex flex-col bg-[#131B2E] border-l border-r border-[#2D3449]/50">
+        <header class="flex items-center justify-between p-4 border-b border-[#2D3449]/50">
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold">{{ session.title }}</h1>
+                {% if session.is_active %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#1E293B] text-[#958EA0]">{{ session.participants.count }} Studying</span>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#1E293B] text-[#958EA0]">{{ session.duration_minutes }}m Sprint</span>
+                {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#222A3D] text-[#958EA0]">ENDED {{ session.end_time|timesince }} AGO</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="p-2 rounded-full hover:bg-[#222A3D]"><i data-lucide="share-2" class="w-5 h-5 text-[#958EA0]"></i></button>
+                <button class="p-2 rounded-full hover:bg-[#222A3D]"><i data-lucide="more-vertical" class="w-5 h-5 text-[#958EA0]"></i></button>
+            </div>
+        </header>
+
+        <div id="post-feed" class="flex-grow p-6 overflow-y-auto space-y-6">
+            {% for post in posts %}
+                <div class="flex items-start gap-3">
+                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ post.author.username|urlencode }}&background=random{% endif %}" alt="{{ post.author.username }}" class="w-8 h-8 rounded-full">
+                    <div>
+                        <p class="text-sm font-semibold mb-1" style="color: hsl({{ post.author.id|add:180 }}, 70%, 70%);">{{ post.author.username }}</p>
+                        <div class="p-3 rounded-lg bg-[#222A3D] text-white">
+                            <p class="text-sm">{{ post.content }}</p>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% if can_post %}
-                <div class="card-footer">
-                    <form method="post" id="post-form" class="d-flex">
-                        {% csrf_token %}
-                        <input type="text" name="content" class="form-control" placeholder="Type a message...">
-                        <button type="submit" class="btn btn-primary ms-2"><i data-lucide="send"></i></button>
-                    </form>
+            {% endfor %}
+        </div>
+
+        {% if can_post %}
+        <div class="p-4 border-t border-[#2D3449]/50">
+            <form id="post-form" method="post" class="flex items-center gap-2">
+                {% csrf_token %}
+                <input type="text" name="content" class="flex-grow bg-[#222A3D] rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#D0BCFF]" placeholder="Type a message...">
+                <button type="submit" class="w-10 h-10 flex-shrink-0 rounded-full bg-[#D0BCFF] flex items-center justify-center">
+                    <i data-lucide="send" class="w-5 h-5 text-[#0B1326]"></i>
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div class="p-4 text-center border-t border-[#2D3449]/50 bg-[#0B1326]">
+            <p class="text-sm text-[#958EA0]">This session has ended. Content is now read-only.</p>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="w-80 flex-shrink-0 p-6 bg-[#171F33] overflow-y-auto space-y-6">
+        {% if session.is_active %}
+        <div>
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Live Session</h3>
+            <div class="relative w-40 h-40 mx-auto mb-4">
+                <svg class="absolute inset-0 transform -rotate-90" viewBox="0 0 100 100"><circle class="text-[#2D3449]" stroke-width="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50"/><circle id="timer-progress" class="text-[#D0BCFF]" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50"/></svg>
+                <div id="timer" class="absolute inset-0 flex flex-col items-center justify-center" data-total-seconds="{{ total_seconds }}" data-remaining-seconds="{{ remaining_seconds }}">
+                    <p class="text-3xl font-bold">00:00</p>
+                    <p class="text-xs text-[#958EA0]">Remaining</p>
                 </div>
-                {% endif %}
+            </div>
+            {% if session.created_by == request.user %}
+            <form id="close-session-form" method="post" action="{% url 'studySessions:close_session' session.id %}">
+                {% csrf_token %}
+                <button type="submit" class="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-red-500/20 text-red-400 hover:bg-red-500/40">End Session</button>
+            </form>
+            {% endif %}
+        </div>
+        <div>
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Active Members</h3>
+            <div class="flex -space-x-2">
+                {% for participant in session.participants.all %}
+                <img src="{% if participant.profile.avatar %}{{ participant.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ participant.username|urlencode }}&background=random{% endif %}" alt="{{ participant.username }}" class="w-8 h-8 rounded-full border-2 border-[#171F33]">
+                {% endfor %}
             </div>
         </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="col-md-4">
-        <div class="card rounded-0 rounded-end border-0 border-start" style="height: calc(100vh - 70px - var(--spacing-8) * 2); overflow-y: auto;">
-            <div class="card-body text-center">
-                <h3 class="h5 mb-3">{{ session.title }}</h3>
-                <p class="text-secondary mb-4">{{ session.description }}</p>
-
-                <div class="timer-ring mx-auto my-4">
-                    <svg class="timer-ring__svg" viewBox="0 0 100 100">
-                        <circle class="timer-ring__background" cx="50" cy="50" r="45"></circle>
-                        <circle class="timer-ring__circle" id="timer-progress" cx="50" cy="50" r="45"></circle>
-                    </svg>
-                    <div id="timer" class="timer-ring__text" data-total-seconds="{{ session.duration_minutes|multiply:60 }}" data-remaining-seconds="{{ remaining_seconds }}"></div>
+        {% else %}
+        <div class="bg-[#222A3D] rounded-lg p-4">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Session Summary</h3>
+            <div class="grid grid-cols-3 gap-4 text-center mb-4">
+                <div><p class="text-2xl font-bold">{{ total_duration }}</p><p class="text-xs text-[#958EA0]">Minutes</p></div>
+                <div><p class="text-2xl font-bold">{{ total_notes }}</p><p class="text-xs text-[#958EA0]">Notes</p></div>
+                <div><p class="text-2xl font-bold">{{ session.participants.count }}</p><p class="text-xs text-[#958EA0]">Members</p></div>
+            </div>
+            <a href="{% url 'studySessions:session_history' session.group.id %}" class="w-full block text-center px-4 py-2 rounded-lg text-sm font-semibold bg-[#D0BCFF] text-[#0B1326] mb-2">View Session History</a>
+            <a href="{% url 'groups:group_detail' session.group.id %}" class="w-full block text-center px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#2D3449]/50">Back to Group Detail</a>
+        </div>
+        <div class="mt-6">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Recent Contributors</h3>
+            <div class="space-y-3">
+                {% for contributor in contributors %}
+                <div class="flex items-center">
+                    <p class="text-sm font-medium flex-grow">{{ contributor.author__username }}</p>
+                    <p class="text-sm text-[#958EA0]">{{ contributor.message_count }} notes</p>
                 </div>
-
-                {% if session.created_by == request.user %}
-                <form method="post" action="{% url 'studySessions:close_session' session.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger w-100">End Session</button>
-                </form>
-                {% endif %}
+                {% endfor %}
             </div>
         </div>
-    </div>
+        {% endif %}
+        <div class="mt-6">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Session Resources</h3>
+            <div class="space-y-3">
+                {% for resource in session.group.resources.all %}
+                <div class="flex items-center">
+                    <i data-lucide="file-text" class="w-6 h-6 text-[#ADC6FF] mr-3"></i>
+                    <div class="flex-grow"><p class="text-sm font-medium">{{ resource.file.name|cut:"group_resources/" }}</p><p class="text-xs text-[#958EA0]">Uploaded by {{ resource.uploaded_by.username }}</p></div>
+                    <a href="{{ resource.file.url }}" download class="p-2 rounded-full hover:bg-[#2D3449]/50"><i data-lucide="download" class="w-4 h-4 text-[#958EA0]"></i></a>
+                </div>
+                {% empty %}
+                <p class="text-sm text-center text-[#958EA0]">No resources for this group yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+
+<div id="toast" class="hidden fixed top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-[#222A3D] border border-[#D0BCFF]/50 text-sm text-white">
+    ⏰ 1 minute remaining in this session
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    const timerEl = document.getElementById('timer');
-    const progressCircle = document.getElementById('timer-progress');
-    const totalSeconds = parseInt(timerEl.dataset.totalSeconds);
-    let remainingSeconds = parseInt(timerEl.dataset.remainingSeconds);
-    const radius = progressCircle.r.baseVal.value;
-    const circumference = radius * 2 * Math.PI;
+    if ("{{ session.is_active }}") {
+        const timerEl = document.getElementById('timer');
+        const progressCircle = document.getElementById('timer-progress');
+        const totalSeconds = parseInt(timerEl.dataset.totalSeconds);
+        let remainingSeconds = parseInt(timerEl.dataset.remainingSeconds);
+        const radius = progressCircle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        let warningShown = false;
 
-    progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
 
-    function setProgress(percent) {
-        const offset = circumference - percent / 100 * circumference;
-        progressCircle.style.strokeDashoffset = offset;
-    }
-
-    function updateTimer() {
-        const hours = Math.floor(remainingSeconds / 3600);
-        const minutes = Math.floor((remainingSeconds % 3600) / 60);
-        const seconds = remainingSeconds % 60;
-        timerEl.innerText = `${hours > 0 ? hours.toString().padStart(2, '0') + ':' : ''}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-        const percent = ((totalSeconds - remainingSeconds) / totalSeconds) * 100;
-        setProgress(percent);
-    }
-
-    const interval = setInterval(() => {
-        if (remainingSeconds <= 0) {
-            clearInterval(interval);
-            // Auto-end session logic
-            return;
+        function setProgress(percent) {
+            const offset = circumference - percent / 100 * circumference;
+            progressCircle.style.strokeDashoffset = offset;
         }
-        remainingSeconds--;
+
+        function updateTimer() {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            timerEl.querySelector('p:first-child').innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const percent = ((totalSeconds - remainingSeconds) / totalSeconds) * 100;
+            setProgress(percent);
+        }
+
+        const interval = setInterval(() => {
+            if (remainingSeconds <= 0) {
+                clearInterval(interval);
+                document.getElementById('close-session-form')?.submit();
+                return;
+            }
+            remainingSeconds--;
+            if (remainingSeconds === 60 && !warningShown) {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('hidden');
+                setTimeout(() => { toast.classList.add('hidden'); }, 5000);
+                warningShown = true;
+            }
+            updateTimer();
+        }, 1000);
         updateTimer();
-    }, 1000);
+    }
 
-    updateTimer(); // Initial call
-
-    // Chat form submission
     const postForm = document.getElementById('post-form');
-    if(postForm) {
+    if (postForm) {
         postForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const form = e.target;
@@ -163,26 +187,22 @@
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             }).then(response => response.json()).then(data => {
                 if (data.status === 'ok') {
-                    const posts = document.getElementById('posts');
+                    const feed = document.getElementById('post-feed');
                     const newPost = document.createElement('div');
-                    newPost.className = 'd-flex align-items-start mb-4';
+                    newPost.className = 'flex items-start gap-3';
                     newPost.innerHTML = `
-                        <img src="${data.avatar_url || 'https://ui-avatars.com/api/?name={{ request.user.username }}&background=random'}" alt="Avatar" class="rounded-circle me-3" width="40" height="40">
+                        <img src="${data.avatar_url}" alt="${data.author}" class="w-8 h-8 rounded-full">
                         <div>
-                            <div class="d-flex align-items-baseline">
-                                <strong class="me-2">{{ request.user.username }}</strong>
-                                <small class="text-secondary">Now</small>
-                            </div>
-                            <p class="mb-0">${content}</p>
+                            <p class="text-sm font-semibold mb-1" style="color: hsl(${ (data.author.charCodeAt(0) + data.author.length) * 20 % 360 }, 70%, 70%);">${data.author}</p>
+                            <div class="p-3 rounded-lg bg-[#222A3D] text-white"><p class="text-sm">${data.content}</p></div>
                         </div>
                     `;
-                    posts.appendChild(newPost);
-                    posts.scrollTop = posts.scrollHeight;
+                    feed.appendChild(newPost);
+                    feed.scrollTop = feed.scrollHeight;
                     form.reset();
                 }
             });
         });
     }
-    lucide.createIcons();
 </script>
 {% endblock %}

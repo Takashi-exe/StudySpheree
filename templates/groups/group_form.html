@@ -1,80 +1,135 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% if form.instance.id %}Edit Group{% else %}Create Group{% endif %}{% endblock %}
+{% block title %}{% if form.instance.id %}Edit Group{% else %}Create a New Group{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-lg-7 col-md-9">
-            <!-- Page Header -->
-            <div class="text-center mb-5">
-                <h1 class="h2">{% if form.instance.id %}Edit {{ form.instance.name }}{% else %}Create a New Study Group{% endif %}</h1>
-                <p class="text-secondary">
-                    {% if form.instance.id %}
-                        Update the details for your group.
-                    {% else %}
-                        Start a new community and invite others to collaborate.
-                    {% endif %}
-                </p>
+<div class="p-8 bg-[#060E20] min-h-full">
+    <div class="max-w-3xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-white">{% if form.instance.id %}Edit '{{ form.instance.name }}'{% else %}Create a new study group{% endif %}</h1>
+            <p class="text-[#958EA0]">{% if form.instance.id %}Update the details for your group.{% else %}Fill out the details to get your new group started.{% endif %}</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="bg-[#171F33] p-8 rounded-2xl border border-[#2D3449]/50 space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-[#958EA0] mb-2">Group Name</label>
+                {{ form.name }}
             </div>
 
-            <div class="card">
-                <div class="card-body p-5">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-[#958EA0] mb-2">Description</label>
+                {{ form.description }}
+            </div>
 
-                        <!-- Name -->
-                        <div class="mb-4">
-                            <label for="{{ form.name.id_for_label }}" class="form-label">Group Name</label>
-                            {{ form.name }}
-                            {% if form.name.errors %}
-                                <div class="invalid-feedback d-block">{{ form.name.errors.as_text }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-4">
-                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                            {{ form.description }}
-                            {% if form.description.errors %}
-                                <div class="invalid-feedback d-block">{{ form.description.errors.as_text }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Cover Image -->
-                        <div class="mb-4">
-                            <label for="{{ form.cover_image.id_for_label }}" class="form-label">Cover Image</label>
-                            {{ form.cover_image }}
-                            {% if form.cover_image.errors %}
-                                <div class="invalid-feedback d-block">{{ form.cover_image.errors.as_text }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Is Private -->
-                        <div class="form-check mb-4">
-                            {{ form.is_private }}
-                            <label class="form-check-label" for="{{ form.is_private.id_for_label }}">
-                                Private Group
-                            </label>
-                            <small class="form-text text-secondary d-block">
-                                If selected, users will need an invite code to join.
-                            </small>
-                            {% if form.is_private.errors %}
-                                <div class="invalid-feedback d-block">{{ form.is_private.errors.as_text }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                {% if form.instance.id %}Save Changes{% else %}Create Group{% endif %}
-                            </button>
-                        </div>
-                    </form>
+            <div>
+                <label class="block text-sm font-medium text-[#958EA0] mb-2">Subject</label>
+                <div class="p-4 rounded-lg bg-[#494454]/30 text-center text-[#958EA0]">
+                    <p class="text-sm">Subject/category selection will be available in a future update.</p>
                 </div>
             </div>
-        </div>
+
+            <div>
+                <label for="{{ form.cover_image.id_for_label }}" class="block text-sm font-medium text-[#958EA0] mb-2">Optional Cover Image</label>
+                <div class="mt-2 flex justify-center rounded-lg border border-dashed border-[#494454]/50 px-6 py-10">
+                    <div class="text-center">
+                        <i data-lucide="image" class="mx-auto h-12 w-12 text-[#958EA0]"></i>
+                        <div class="mt-4 flex text-sm leading-6 text-gray-400">
+                            <label for="{{ form.cover_image.id_for_label }}" class="relative cursor-pointer rounded-md font-semibold text-[#D0BCFF] focus-within:outline-none focus-within:ring-2 focus-within:ring-[#A078FF] focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-[#A078FF]">
+                                <span>Upload a file</span>
+                                {{ form.cover_image }}
+                            </label>
+                            <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs leading-5 text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-[#958EA0] mb-2">Privacy</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center p-4 rounded-lg border cursor-pointer" data-privacy="public">
+                        <i data-lucide="globe" class="w-5 h-5 mr-3"></i>
+                        <div>
+                            <p class="font-semibold">Public</p>
+                            <p class="text-xs text-[#958EA0]">Anyone can find and join.</p>
+                        </div>
+                    </label>
+                    <label class="flex items-center p-4 rounded-lg border cursor-pointer" data-privacy="private">
+                        <i data-lucide="lock" class="w-5 h-5 mr-3"></i>
+                        <div>
+                            <p class="font-semibold">Private</p>
+                            <p class="text-xs text-[#958EA0]">Only joinable via invite link.</p>
+                        </div>
+                    </label>
+                </div>
+                {{ form.is_private }}
+            </div>
+
+            <div class="pt-6 flex items-center justify-end gap-x-6">
+                <a href="{% if form.instance.id %}{% url 'groups:group_detail' form.instance.id %}{% else %}{% url 'groups:group_list' %}{% endif %}" class="text-sm font-semibold leading-6 text-white">Cancel</a>
+                <button type="submit" class="rounded-md bg-[#D0BCFF] px-4 py-2 text-sm font-semibold text-[#0B1326] shadow-sm hover:bg-opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A078FF]">
+                    {% if form.instance.id %}Save Changes{% else %}Create Group{% endif %}
+                </button>
+            </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+    input[type="text"], textarea {
+        background-color: rgba(73, 68, 84, 0.5);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        width: 100%;
+        border: 1px solid transparent;
+    }
+    input[type="text"]:focus, textarea:focus {
+        outline: none;
+        ring: 2px;
+        ring-color: #A078FF;
+    }
+    input[type="file"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+    input[type="checkbox"] {
+        display: none;
+    }
+</style>
+<script>
+    const privacyPublic = document.querySelector('[data-privacy="public"]');
+    const privacyPrivate = document.querySelector('[data-privacy="private"]');
+    const isPrivateInput = document.getElementById('{{ form.is_private.id_for_label }}');
+
+    function selectPrivacy(isPrivate) {
+        if (isPrivate) {
+            privacyPrivate.classList.add('border-[#D0BCFF]', 'bg-[#D0BCFF]/20');
+            privacyPublic.classList.remove('border-[#D0BCFF]', 'bg-[#D0BCFF]/20');
+            isPrivateInput.checked = true;
+        } else {
+            privacyPublic.classList.add('border-[#D0BCFF]', 'bg-[#D0BCFF]/20');
+            privacyPrivate.classList.remove('border-[#D0BCFF]', 'bg-[#D0BCFF]/20');
+            isPrivateInput.checked = false;
+        }
+    }
+
+    privacyPublic.addEventListener('click', () => selectPrivacy(false));
+    privacyPrivate.addEventListener('click', () => selectPrivacy(true));
+
+    // Initial state
+    selectPrivacy(isPrivateInput.checked);
+</script>
 {% endblock %}

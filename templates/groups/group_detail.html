@@ -33,7 +33,13 @@
                     <p class="text-sm font-semibold mb-1" style="color: hsl({{ message.user.id|add:180 }}, 70%, 70%);">{{ message.user.username }}</p>
                     {% endif %}
                     <div class="p-3 rounded-2xl {% if message.user == request.user %}bg-[#D0BCFF] text-[#0B1326]{% else %}bg-[#222A3D] text-white{% endif %}">
-                        <p class="text-sm">{{ message.content }}</p>
+                        {% if '```' in message.content %}
+                            {% with parts=message.content.split|slice:":2" %}
+                                <pre class="bg-[#0B1326] p-3 rounded-lg text-sm font-mono"><code>{{ parts.1 }}</code></pre>
+                            {% endwith %}
+                        {% else %}
+                            <p class="text-sm">{{ message.content }}</p>
+                        {% endif %}
                     </div>
                 </div>
                 <p class="text-xs text-[#958EA0] mt-1 self-end">{{ message.created_at|date:"P" }}</p>
@@ -63,16 +69,49 @@
             </div>
         </div>
 
+        {% if not has_active_session %}
+        <div class="bg-[#222A3D] rounded-lg p-4 mb-6">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-2">Next Session</h3>
+            <p class="text-gray-400 text-sm mb-4">No upcoming session.</p>
+            <a href="{% url 'studySessions:start_session' group.id %}" class="w-full block text-center px-4 py-2 rounded-lg text-sm font-semibold bg-[#D0BCFF] text-[#0B1326]">Start New Session</a>
+        </div>
+        {% endif %}
+
+        {% if active_session %}
         <div class="mb-6">
-            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Study History</h3>
-            <div class="space-y-2">
-                {% for session in user_study_history %}
-                <a href="{% url 'studySessions:session_detail' session.id %}" class="flex items-center p-2 rounded-lg hover:bg-[#222A3D] {% if forloop.first %}bg-[#222A3D] border border-[#D0BCFF]/50{% endif %}">
-                    <i data-lucide="clock" class="w-4 h-4 mr-3 text-[#958EA0]"></i>
-                    <span class="text-sm">{{ session.title }}</span>
-                </a>
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4">Active Now ({{ active_session.participants.count }})</h3>
+            <div class="flex -space-x-2">
+                {% for participant in active_session.participants.all %}
+                <img src="{% if participant.profile.avatar %}{{ participant.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ participant.username|urlencode }}&background=random{% endif %}" alt="{{ participant.username }}" class="w-8 h-8 rounded-full border-2 border-[#171F33]">
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-[#222A3D] rounded-lg p-4 mb-6">
+            <h3 class="text-sm font-semibold uppercase text-[#958EA0] mb-4 flex items-center"><i data-lucide="folder" class="w-4 h-4 mr-2"></i>Session Resources</h3>
+            <form action="{% url 'groups:upload_resource' group.id %}" method="post" enctype="multipart/form-data" class="mb-4">
+                {% csrf_token %}
+                <div class="relative border-2 border-dashed border-[#A078FF]/30 rounded-lg p-4 text-center">
+                    <input type="file" name="file" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="this.form.submit()">
+                    <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-[#A078FF]/80 mb-2"></i>
+                    <p class="text-sm text-[#958EA0]">Click to upload resource</p>
+                </div>
+            </form>
+            <div class="space-y-3">
+                {% for resource in group.resources.all %}
+                <div class="flex items-center">
+                    {% with file_ext=resource.file.name|slice:"-3:" %}
+                    <i data-lucide="{% if file_ext == 'pdf' %}file-text{% elif file_ext == 'png' or file_ext == 'jpg' %}file-image{% else %}file{% endif %}" class="w-6 h-6 {% if file_ext == 'pdf' %}text-red-400{% else %}text-[#ADC6FF]{% endif %} mr-3"></i>
+                    {% endwith %}
+                    <div class="flex-grow">
+                        <p class="text-sm font-medium">{{ resource.file.name|cut:"group_resources/" }}</p>
+                        <p class="text-xs text-[#958EA0]">Uploaded by {{ resource.uploaded_by.username }} • {{ resource.uploaded_at|timesince }} ago</p>
+                    </div>
+                    <a href="{{ resource.file.url }}" download class="p-2 rounded-full hover:bg-[#2D3449]/50"><i data-lucide="download" class="w-4 h-4 text-[#958EA0]"></i></a>
+                </div>
                 {% empty %}
-                <p class="text-sm text-[#958EA0]">No past sessions.</p>
+                <p class="text-sm text-center text-[#958EA0]">No resources uploaded yet.</p>
                 {% endfor %}
             </div>
         </div>
@@ -98,6 +137,23 @@
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-message-input');
 
+    function escapeHtml(unsafe) {
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
+    function renderMessageContent(content) {
+        const escapedContent = escapeHtml(content);
+        const codeBlockRegex = /```([\s\S]*?)```/g;
+        return escapedContent.replace(codeBlockRegex, (match, code) => {
+            return `<pre class="bg-[#0B1326] p-3 rounded-lg text-sm font-mono"><code>${code.trim()}</code></pre>`;
+        });
+    }
+
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         const messageEl = document.createElement('div');
@@ -111,9 +167,9 @@
         let senderHtml = '';
         if (!isCurrentUser) {
             senderHtml = `
-                <img src="${data.avatar_url}" alt="${data.user}" class="w-8 h-8 rounded-full">
+                <img src="${data.avatar_url}" alt="${escapeHtml(data.user)}" class="w-8 h-8 rounded-full">
                 <div class="max-w-md">
-                    <p class="text-sm font-semibold mb-1" style="color: hsl(${ (data.user.charCodeAt(0) + data.user.length) * 20 % 360 }, 70%, 70%);">${data.user}</p>
+                    <p class="text-sm font-semibold mb-1" style="color: hsl(${ (data.user.charCodeAt(0) + data.user.length) * 20 % 360 }, 70%, 70%);">${escapeHtml(data.user)}</p>
             `;
         } else {
             senderHtml = `<div class="max-w-md">`;
@@ -122,7 +178,7 @@
         messageEl.innerHTML = `
             ${senderHtml}
                 <div class="p-3 rounded-2xl ${isCurrentUser ? 'bg-[#D0BCFF] text-[#0B1326]' : 'bg-[#222A3D] text-white'}">
-                    <p class="text-sm">${data.message}</p>
+                    ${renderMessageContent(data.message)}
                 </div>
             </div>
             <p class="text-xs text-[#958EA0] mt-1 self-end">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>

@@ -4,6 +4,7 @@ from django.contrib import messages
 from .models import StudyGroup, GroupMembership, GroupChatMessage, GroupResource
 from .forms import GroupForm, GroupResourceForm
 from studySessions.models import StudySession
+from django.db.models import Prefetch
 
 @login_required
 def group_list(request):
@@ -31,8 +32,7 @@ def group_detail(request, group_id):
         StudyGroup.objects.prefetch_related(
             'members__profile', 
             'chat_messages__user__profile', 
-            'resources__uploaded_by', 
-            'sessions'
+            'resources__uploaded_by__profile'
         ), 
         id=group_id
     )
@@ -43,11 +43,16 @@ def group_detail(request, group_id):
             GroupChatMessage.objects.create(group=group, user=request.user, content=content)
             return redirect('groups:group_detail', group_id=group.id)
 
-    # Sessions specific to the group
-    past_group_sessions = group.sessions.filter(is_active=False).order_by('-start_time')[:5]
-    active_session = group.sessions.filter(is_active=True).first()
-    
-    # User's overall study history (not just for this group)
+    # Use Prefetch to get participants for active sessions
+    active_session_prefetch = Prefetch(
+        'sessions',
+        queryset=StudySession.objects.filter(is_active=True).prefetch_related('participants__profile'),
+        to_attr='active_sessions_list'
+    )
+    group_with_active_session = StudyGroup.objects.prefetch_related(active_session_prefetch).get(id=group_id)
+    active_session = group_with_active_session.active_sessions_list[0] if group_with_active_session.active_sessions_list else None
+
+    past_group_sessions = StudySession.objects.filter(group=group, is_active=False).order_by('-start_time')[:5]
     user_study_history = StudySession.objects.filter(participants=request.user, is_active=False).order_by('-start_time')[:5]
 
     is_member = group.members.filter(id=request.user.id).exists()
@@ -57,7 +62,7 @@ def group_detail(request, group_id):
     context = {
         'group': group,
         'chat_messages': group.chat_messages.all(),
-        'past_sessions': past_group_sessions, # Renamed for clarity
+        'past_sessions': past_group_sessions,
         'user_study_history': user_study_history,
         'active_session': active_session,
         'has_active_session': active_session is not None,

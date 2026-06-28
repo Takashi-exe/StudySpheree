@@ -1,11 +1,124 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Start a Study Session{% endblock %}
+
 {% block content %}
-<div class="container mx-auto">
-    <h1 class="text-2xl font-bold mb-4">Start a new Study Session for {{ group.name }}</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Start Session</button>
-    </form>
+<div class="p-8 bg-[#060E20] min-h-full relative overflow-hidden">
+    <!-- Decorative background pattern -->
+    <div class="absolute top-0 right-0 -mt-20 -mr-20 text-[#494454]/50">
+        <svg width="400" height="400" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M200 0v200M0 200h200" stroke="currentColor" stroke-width="2"/><path d="M400 200h-200V0" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/></svg>
+    </div>
+
+    <div class="max-w-2xl mx-auto relative">
+        <div class="flex justify-between items-center mb-8">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D0BCFF]/10 text-[#D0BCFF]">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>{{ group.name }}</span>
+            </div>
+            <img src="{% if request.user.profile.avatar %}{{ request.user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=random{% endif %}" alt="Avatar" class="w-10 h-10 rounded-full">
+        </div>
+
+        <h1 class="text-4xl font-bold text-white mb-8">Start a study session</h1>
+
+        <form method="post" class="bg-[#171F33] p-8 rounded-2xl border border-[#2D3449]/50 space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label for="id_title" class="block text-sm font-medium text-[#958EA0] mb-2">Session Title</label>
+                <input type="text" name="title" id="id_title" required class="w-full bg-[#494454]/50 rounded-lg px-4 py-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-[#A078FF]" placeholder="e.g. Midterm Review Session">
+            </div>
+
+            <div>
+                <label for="id_description" class="block text-sm font-medium text-[#958EA0] mb-2">Agenda (Optional)</label>
+                <textarea name="description" id="id_description" rows="4" class="w-full bg-[#494454]/50 rounded-lg px-4 py-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-[#A078FF]" placeholder="What will this session focus on?"></textarea>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-baseline mb-4">
+                    <label class="text-sm font-medium text-[#958EA0]">Duration</label>
+                    <p class="text-lg font-bold"><span id="duration-display">45</span> <span class="text-sm font-medium text-[#958EA0]">MINUTES</span></p>
+                </div>
+                <input type="hidden" name="duration_minutes" id="id_duration_minutes" value="45">
+
+                <div class="grid grid-cols-4 gap-3 mb-4">
+                    {% for duration in preset_durations %}
+                    <button type="button" class="duration-chip p-3 rounded-lg border" data-value="{{ duration }}">
+                        {{ duration }}m
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="flex items-center justify-between bg-[#494454]/50 rounded-lg p-2">
+                    <span class="text-sm ml-2">Custom</span>
+                    <div class="flex items-center gap-4">
+                        <button type="button" id="decrement-btn" class="p-2 rounded-md bg-[#A078FF]/10 hover:bg-[#A078FF]/30"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                        <span id="custom-duration-display" class="font-bold text-lg w-8 text-center">45</span>
+                        <button type="button" id="increment-btn" class="p-2 rounded-md bg-[#A078FF]/10 hover:bg-[#A078FF]/30"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg text-lg font-semibold bg-[#D0BCFF] text-[#0B1326] hover:bg-opacity-90">
+                <i data-lucide="play" class="w-5 h-5"></i>
+                Start Session
+            </button>
+
+            <p class="text-center text-sm text-[#958EA0]">Group members will be notified once the session starts.</p>
+
+            <div class="text-center">
+                <a href="{% url 'groups:group_detail' group.id %}" class="text-sm text-[#958EA0] underline hover:text-white">Cancel and back to Group</a>
+            </div>
+        </form>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const durationInput = document.getElementById('id_duration_minutes');
+    const durationDisplay = document.getElementById('duration-display');
+    const customDurationDisplay = document.getElementById('custom-duration-display');
+    const chips = document.querySelectorAll('.duration-chip');
+    const decrementBtn = document.getElementById('decrement-btn');
+    const incrementBtn = document.getElementById('increment-btn');
+
+    function updateDuration(value) {
+        const intValue = parseInt(value, 10);
+        durationInput.value = intValue;
+        durationDisplay.textContent = intValue;
+        customDurationDisplay.textContent = intValue;
+
+        chips.forEach(chip => {
+            if (chip.dataset.value == intValue) {
+                chip.classList.add('border-[#D0BCFF]', 'bg-[#D0BCFF]/20');
+                chip.classList.remove('border-transparent');
+            } else {
+                chip.classList.remove('border-[#D0BCFF]', 'bg-[#D0BCFF]/20');
+                chip.classList.add('border-transparent');
+            }
+        });
+    }
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            updateDuration(chip.dataset.value);
+        });
+    });
+
+    decrementBtn.addEventListener('click', () => {
+        let currentValue = parseInt(durationInput.value, 10);
+        if (currentValue > 5) {
+            updateDuration(currentValue - 5);
+        }
+    });
+
+    incrementBtn.addEventListener('click', () => {
+        let currentValue = parseInt(durationInput.value, 10);
+        updateDuration(currentValue + 5);
+    });
+
+    // Initial state
+    updateDuration(45);
+</script>
 {% endblock %}

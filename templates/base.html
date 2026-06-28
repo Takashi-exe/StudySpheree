@@ -28,6 +28,7 @@
             <nav class="flex-grow">
                 <ul>
                     <li class="mb-2"><a href="{% url 'root' %}" class="flex items-center p-2 rounded-lg {% if request.resolver_match.url_name == 'root' %}bg-[#222A3D] text-[#D0BCFF]{% else %}text-[#958EA0]{% endif %}"><i data-lucide="layout-grid" class="w-5 h-5 mr-3"></i> Dashboard</a></li>
+                    <li class="mb-2"><a href="{% url 'accounts:friends_list' %}" class="flex items-center p-2 rounded-lg {% if request.resolver_match.url_name == 'friends_list' %}bg-[#222A3D] text-[#D0BCFF]{% else %}text-[#958EA0]{% endif %}"><i data-lucide="user-check" class="w-5 h-5 mr-3"></i> Friends</a></li>
                     <li class="mb-2"><a href="{% url 'conversation_list' %}" class="flex items-center p-2 rounded-lg {% if request.resolver_match.url_name == 'conversation_list' %}bg-[#222A3D] text-[#D0BCFF]{% else %}text-[#958EA0]{% endif %}"><i data-lucide="message-circle" class="w-5 h-5 mr-3"></i> Messages</a></li>
                     <li class="mb-2"><a href="{% url 'groups:group_list' %}" class="flex items-center p-2 rounded-lg {% if 'groups' in request.resolver_match.app_names %}bg-[#222A3D] text-[#D0BCFF]{% else %}text-[#958EA0]{% endif %}"><i data-lucide="users" class="w-5 h-5 mr-3"></i> Study Rooms</a></li>
                     <li class="mb-2"><a href="#" class="flex items-center p-2 rounded-lg text-[#958EA0] opacity-50 cursor-not-allowed"><i data-lucide="bar-chart-2" class="w-5 h-5 mr-3"></i> Analytics</a></li>
